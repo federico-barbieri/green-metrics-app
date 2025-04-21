@@ -23,6 +23,10 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/additional">Additional page</Link>
+        <Link to="/app/deliverydistance">Delivery Distance</Link>
+        <Link to="/app/locallyproduced">Locally Produced</Link>
+        <Link to="/app/packagingweight">Packaging Weight</Link>
+        <Link to="/app/sustainablematerials">Sustainable Materials</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>
