@@ -3,7 +3,7 @@
 client_id = "db28f1fd5dc82d4805ca122e804a9168"
 name = "green-metrics-app"
 handle = "green-metrics-app"
-application_url = "https://informal-store-firewire-journalists.trycloudflare.com"
+application_url = "https://tomato-nicaragua-indicator-entered.trycloudflare.com"
 embedded = true
 
 [build]
@@ -23,13 +23,13 @@ api_version = "2025-04"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products"
+scopes = "read_orders,read_customers,read_products,read_locations,write_products"
 
 [auth]
 redirect_urls = [
-  "https://informal-store-firewire-journalists.trycloudflare.com/auth/callback",
-  "https://informal-store-firewire-journalists.trycloudflare.com/auth/shopify/callback",
-  "https://informal-store-firewire-journalists.trycloudflare.com/api/auth/callback"
+  "https://tomato-nicaragua-indicator-entered.trycloudflare.com/auth/callback",
+  "https://tomato-nicaragua-indicator-entered.trycloudflare.com/auth/shopify/callback",
+  "https://tomato-nicaragua-indicator-entered.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]
