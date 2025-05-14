@@ -150,7 +150,7 @@ export const loader = async ({ request }) => {
 
 
 export default function DeliveryDistance() {
-  const { avgDeliveryDistance, orderDistances, topZips, error } = useLoaderData();
+  const { avgDeliveryDistance, orderDistances, topZips } = useLoaderData();
 
   const renderMetric = () => (
     <Card title="Average Delivery Distance" sectioned>
@@ -170,7 +170,7 @@ export default function DeliveryDistance() {
             return (
               <ResourceItem id={name}>
                 <Text variant="bodyMd">
-                  {name} {highlightZip && <Badge status="info">Recurring Zip Code</Badge>}
+                  {name} {highlightZip && <Badge tone="success" status="info">Recurring Zip Code</Badge>}
                 </Text>
                 <Text variant="subdued">{distance} km</Text>
               </ResourceItem>

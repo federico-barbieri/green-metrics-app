@@ -88,7 +88,7 @@ import {
                 <ResourceItem id={id}>
                   <div style={{ gap: "1rem", display: "flex", flexDirection: "column" }}>
                     <Text variant="bodyMd" fontWeight="bold" as="h3">
-                      {title} <Badge status={labelColor}>{labelText}</Badge>
+                      {title} <Badge tone={labelColor} status={labelColor}>{labelText}</Badge>
                     </Text>
                   </div>
                   <LocallyProducedMetafieldEditor

@@ -136,7 +136,7 @@ export default function SustainableProducts() {
                         <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
                           <Text variant="bodyMd" fontWeight="bold" as="h3">
                             {title} {" "}
-                            <Badge status={badgeStatus}>
+                            <Badge tone={badgeStatus}>
                               {badgeLabel}
                             </Badge>
                           </Text>

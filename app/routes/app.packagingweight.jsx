@@ -144,7 +144,7 @@ export default function PackagingWeight() {
                         <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
                           <Text variant="bodyMd" fontWeight="bold" as="h3">
                             {title}{" "}
-                            <Badge status={pwrStatus}>
+                            <Badge tone={pwrStatus}>
                               {pwrLabel} (PWR {pwrValue})
                             </Badge>
                           </Text>
