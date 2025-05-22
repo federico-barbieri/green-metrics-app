@@ -19,7 +19,7 @@ const sustainableMaterialsGauge = new promClient.Gauge({
   name: 'sustainable_materials_percentage',
   help: 'Percentage of sustainable materials in products',
   labelNames: ['product_id', 'product_title', 'store_id'],
-  registers: [register] // Explicitly register with our custom registry
+  registers: [register]
 });
 
 const packagingRatioGauge = new promClient.Gauge({
@@ -30,7 +30,7 @@ const packagingRatioGauge = new promClient.Gauge({
 });
 
 const locallyProducedGauge = new promClient.Gauge({
-  name: 'locally_produced',
+  name: 'is_locally_produced',
   help: 'Whether a product is locally produced (1 for true, 0 for false)',
   labelNames: ['product_id', 'product_title', 'store_id'],
   registers: [register]
@@ -46,7 +46,7 @@ const deliveryDistanceGauge = new promClient.Gauge({
 const storeAvgDeliveryDistanceGauge = new promClient.Gauge({
   name: 'store_avg_delivery_distance_km',
   help: 'Average delivery distance for a store in kilometers',
-  labelNames: ['store_id', 'store_name'],
+  labelNames: ['store_id', 'store_name', 'store_domain'],
   registers: [register]
 });
 
@@ -54,6 +54,28 @@ const productStatusGauge = new promClient.Gauge({
   name: 'product_status',
   help: 'Product status (1 = active, 0 = deleted)',
   labelNames: ['product_id', 'product_title', 'store_id'],
+  registers: [register]
+});
+
+// NEW: Store-level aggregated metrics
+const storeProductCountGauge = new promClient.Gauge({
+  name: 'store_product_count',
+  help: 'Total number of products per store',
+  labelNames: ['store_id', 'store_name', 'store_domain'],
+  registers: [register]
+});
+
+const storeAvgSustainableMaterialsGauge = new promClient.Gauge({
+  name: 'store_avg_sustainable_materials',
+  help: 'Average sustainable materials percentage for store',
+  labelNames: ['store_id', 'store_name', 'store_domain'],
+  registers: [register]
+});
+
+const storeLocalProductsGauge = new promClient.Gauge({
+  name: 'store_local_products_count',
+  help: 'Number of locally produced products per store',
+  labelNames: ['store_id', 'store_name', 'store_domain'],
   registers: [register]
 });
 
@@ -75,5 +97,8 @@ export const metrics = {
   locallyProducedGauge,
   deliveryDistanceGauge,
   storeAvgDeliveryDistanceGauge,
-  productStatusGauge
+  productStatusGauge,
+  storeProductCountGauge,
+  storeAvgSustainableMaterialsGauge,
+  storeLocalProductsGauge
 };

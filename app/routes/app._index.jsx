@@ -1,3 +1,4 @@
+// app/routes/app._index.jsx
 import { useEffect } from "react";
 import { json } from "@remix-run/node";
 import { useLoaderData, useNavigate, useFetcher } from "@remix-run/react";
@@ -17,6 +18,8 @@ import {
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { PrismaClient } from "@prisma/client";
+import { updateProductMetrics } from "../utils/metrics";
+import { updateStoreAggregatedMetrics } from "../utils/storeMetrics";
 
 const prisma = new PrismaClient();
 
@@ -366,7 +369,7 @@ export const action = async ({ request }) => {
           
           if (existingProduct) {
             // Update existing product with any new metafields
-            await prisma.product.update({
+            const updatedProduct = await prisma.product.update({
               where: {
                 id: existingProduct.id
               },
@@ -376,9 +379,13 @@ export const action = async ({ request }) => {
                 updatedAt: new Date()
               }
             });
+            
+            // Update Prometheus metrics for existing product
+            await updateProductMetrics(updatedProduct);
+            
           } else {
             // Create new product
-            await prisma.product.create({
+            const newProduct = await prisma.product.create({
               data: {
                 shopifyProductId: shopifyProductId,
                 title: shopifyProduct.title,
@@ -386,6 +393,10 @@ export const action = async ({ request }) => {
                 ...metafields
               }
             });
+            
+            // Update Prometheus metrics for new product
+            await updateProductMetrics(newProduct);
+            
             importCount++;
           }
           
@@ -464,11 +475,17 @@ export const action = async ({ request }) => {
         endCursor = pageInfo.endCursor;
       }
       
+      // Update store-level aggregated metrics after importing all products
+      console.log("🔄 Updating store-level aggregated metrics...");
+      await updateStoreAggregatedMetrics(store.id);
+      console.log("✅ Store metrics updated successfully");
+      
       return json({
         action: "import_products",
         success: true,
         importCount,
-        totalProducts
+        totalProducts,
+        message: `Successfully imported ${importCount} products and initialized metrics`
       });
     } catch (error) {
       console.error("Error importing products:", error);
@@ -539,7 +556,7 @@ export default function Index() {
     }
     
     if (importFetcher.data?.success) {
-      shopify.toast.show(`${importFetcher.data.importCount} products imported`);
+      shopify.toast.show(`${importFetcher.data.importCount} products imported and metrics initialized`);
     }
     
     if (metafieldFetcher.data?.success) {
@@ -602,13 +619,13 @@ export default function Index() {
                 {/* Product Import Status */}
                 {isImporting && (
                   <Banner title="Importing Products" tone="info">
-                    <p>We're importing your products from Shopify. This may take a moment...</p>
+                    <p>We're importing your products from Shopify and initializing metrics. This may take a moment...</p>
                   </Banner>
                 )}
                 
                 {importFetcher.data?.success && (
                   <Banner title="Products Imported Successfully" tone="success">
-                    <p>Successfully imported {importFetcher.data.importCount} new products out of {importFetcher.data.totalProducts} total products.</p>
+                    <p>{importFetcher.data.message}</p>
                   </Banner>
                 )}
                 
