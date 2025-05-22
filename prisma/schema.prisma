@@ -1,32 +1,109 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+  // This is your Prisma schema file,
+  // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-generator client {
-  provider = "prisma-client-js"
-}
+  generator client {
+    provider = "prisma-client-js"
+  }
 
-// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
-// enough when changing adapters.
-// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
-datasource db {
-  provider = "sqlite"
-  url      = "file:dev.sqlite"
-}
+  datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+  }
 
-model Session {
-  id            String    @id
-  shop          String
-  state         String
-  isOnline      Boolean   @default(false)
-  scope         String?
-  expires       DateTime?
-  accessToken   String
-  userId        BigInt?
-  firstName     String?
-  lastName      String?
-  email         String?
-  accountOwner  Boolean   @default(false)
-  locale        String?
-  collaborator  Boolean?  @default(false)
-  emailVerified Boolean?  @default(false)
-}
+  // Original Session model from Shopify - unchanged
+  model Session {
+    id            String    @id
+    shop          String
+    state         String
+    isOnline      Boolean   @default(false)
+    scope         String?
+    expires       DateTime?
+    accessToken   String
+    userId        BigInt?
+    firstName     String?
+    lastName      String?
+    email         String?
+    accountOwner  Boolean   @default(false)
+    locale        String?
+    collaborator  Boolean?  @default(false)
+    emailVerified Boolean?  @default(false)
+  }
+
+  model Store {
+    id                  String     @id @default(uuid())
+    shopifyDomain       String     @unique
+    name                String?
+    
+    // Store sustainability metrics
+    avgDeliveryDistance Float?     // Store the calculated average delivery distance
+    
+    // Warehouse/deposit location coordinates
+    warehouseLatitude   Float?
+    warehouseLongitude  Float?
+    
+    createdAt           DateTime   @default(now())
+    updatedAt           DateTime   @updatedAt
+    
+    // Relations
+    products            Product[]
+    orders              Order[]
+
+    @@index([shopifyDomain])
+  }
+
+  model Product {
+    id                    String    @id @default(uuid())
+    shopifyProductId      String
+    storeId               String
+    title                 String
+    
+    // Sustainability metafields
+    sustainableMaterials  Float?    // Decimal type in Shopify
+    isLocallyProduced     Boolean?  // True/false type in Shopify
+    packagingWeight       Float?    // Decimal type in Shopify  
+    productWeight         Float?    // Decimal type in Shopify
+    
+    // Calculated field (can be updated when both weights are set)
+    packagingRatio        Float?    // Calculated: packagingWeight / productWeight
+    
+    createdAt             DateTime  @default(now())
+    updatedAt             DateTime  @updatedAt
+    
+    // Relations
+    store                 Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+    // A product ID should be unique within a store
+    @@unique([shopifyProductId, storeId])
+    @@index([storeId])
+  }
+
+  model Order {
+    id                String    @id @default(uuid())
+    shopifyOrderId    String    // The numeric ID from Shopify
+    shopifyOrderName  String?   // The order number shown to customers (e.g., #1001)
+    storeId           String
+    
+    // Order status
+    fulfilled         Boolean   @default(false)
+    
+    // Delivery address details
+    deliveryAddress   String?
+    deliveryCity      String?
+    deliveryCountry   String?
+    deliveryZipCode   String?
+    
+    // Calculated delivery distance
+    deliveryDistance  Float?    // Distance in kilometers
+    
+    createdAt         DateTime  @default(now())
+    updatedAt         DateTime  @updatedAt
+    
+    // Relations
+    store             Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+    
+    // An order ID should be unique within a store
+    @@unique([shopifyOrderId, storeId])
+    @@index([storeId])
+    @@index([deliveryZipCode])
+    @@index([fulfilled])
+  }
