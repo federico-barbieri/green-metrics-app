@@ -5,14 +5,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
-// enough when changing adapters.
-// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
-  provider = "sqlite"
-  url      = "file:dev.sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
+// Original Session model from Shopify - unchanged
 model Session {
   id            String    @id
   shop          String
@@ -29,4 +27,105 @@ model Session {
   locale        String?
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
+}
+
+model Store {
+  id                  String     @id @default(uuid())
+  shopifyDomain       String     @unique
+  name                String?
+  
+  // Store sustainability metrics
+  avgDeliveryDistance Float?     // Store the calculated average delivery distance
+  
+  // Warehouse/deposit location coordinates
+  warehouseLatitude   Float?
+  warehouseLongitude  Float?
+  
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  
+  // Relations
+  products            Product[]
+  orders              Order[]
+
+  @@index([shopifyDomain])
+}
+
+model Product {
+  id                    String    @id @default(uuid())
+  shopifyProductId      String
+  storeId               String
+  title                 String
+  
+  // Sustainability metafields
+  sustainableMaterials  Float?    // Decimal type in Shopify
+  isLocallyProduced     Boolean?  // True/false type in Shopify
+  packagingWeight       Float?    // Decimal type in Shopify  
+  productWeight         Float?    // Decimal type in Shopify
+  
+  // Calculated field (can be updated when both weights are set)
+  packagingRatio        Float?    // Calculated: packagingWeight / productWeight
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  // Relations
+  store                 Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  metricsHistory        ProductMetricsHistory[]  // NEW: Historical tracking
+
+  // A product ID should be unique within a store
+  @@unique([shopifyProductId, storeId])
+  @@index([storeId])
+}
+
+// NEW: Historical tracking of all product metric changes
+model ProductMetricsHistory {
+  id                    String    @id @default(uuid())
+  productId             String
+  timestamp             DateTime  @default(now())
+  
+  // Track changes to all sustainability metrics
+  sustainableMaterials  Float?    
+  isLocallyProduced     Boolean?  
+  packagingWeight       Float?  
+  productWeight         Float?
+  packagingRatio        Float?
+  
+  // Relation to the product
+  product               Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@index([productId])
+  @@index([timestamp])
+  @@index([productId, timestamp])  // Composite index for efficient queries
+}
+
+model Order {
+  id                String    @id @default(uuid())
+  shopifyOrderId    String    // The numeric ID from Shopify
+  shopifyOrderName  String?   // The order number shown to customers (e.g., #1001)
+  storeId           String
+  
+  // Order status
+  fulfilled         Boolean   @default(false)
+  
+  // Delivery address details
+  deliveryAddress   String?
+  deliveryCity      String?
+  deliveryCountry   String?
+  deliveryZipCode   String?
+  
+  // Calculated delivery distance
+  deliveryDistance  Float?    // Distance in kilometers
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  // Relations
+  store             Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  // An order ID should be unique within a store
+  @@unique([shopifyOrderId, storeId])
+  @@index([storeId])
+  @@index([deliveryZipCode])
+  @@index([fulfilled])
 }

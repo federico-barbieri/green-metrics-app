@@ -3,7 +3,7 @@
 client_id = "db28f1fd5dc82d4805ca122e804a9168"
 name = "green-metrics-app"
 handle = "green-metrics-app"
-application_url = "https://tomato-nicaragua-indicator-entered.trycloudflare.com"
+application_url = "https://assisted-compliance-threats-pack.trycloudflare.com"
 embedded = true
 
 [build]
@@ -21,15 +21,35 @@ api_version = "2025-04"
   topics = [ "app/scopes_update" ]
   uri = "/webhooks/app/scopes_update"
 
+  [[webhooks.subscriptions]]
+  topics = [ "app/installed" ]
+  uri = "/webhooks/app/installed"
+
+  [[webhooks.subscriptions]]
+  topics = [ "products/create" ]
+  uri = "/webhooks/products/create"
+
+  [[webhooks.subscriptions]]
+  topics = [ "products/update" ]
+  uri = "/webhooks/products/update"
+
+  [[webhooks.subscriptions]]
+  topics = [ "products/delete" ]
+  uri = "/webhooks/products/delete"
+
+  [[webhooks.subscriptions]]
+  topics = [ "orders/fulfilled" ]
+  uri = "/webhooks/orders/fulfilled"
+
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "read_orders,read_customers,read_products,read_locations,write_products"
 
 [auth]
 redirect_urls = [
-  "https://tomato-nicaragua-indicator-entered.trycloudflare.com/auth/callback",
-  "https://tomato-nicaragua-indicator-entered.trycloudflare.com/auth/shopify/callback",
-  "https://tomato-nicaragua-indicator-entered.trycloudflare.com/api/auth/callback"
+  "https://assisted-compliance-threats-pack.trycloudflare.com/auth/callback",
+  "https://assisted-compliance-threats-pack.trycloudflare.com/auth/shopify/callback",
+  "https://assisted-compliance-threats-pack.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

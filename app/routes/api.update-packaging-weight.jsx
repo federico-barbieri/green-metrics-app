@@ -1,6 +1,11 @@
 // app/routes/api.update-packaging-weight.jsx
 import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
+import { PrismaClient } from "@prisma/client";
+import { updateProductMetrics } from "../utils/metrics";
+
+
+const prisma = new PrismaClient();
 
 // This is the action function that will be called when the form is submitted
 // It updates the packaging-weight metafield for a product
@@ -11,7 +16,7 @@ import { authenticate } from "../shopify.server";
 export const action = async ({ request }) => {
   console.log("Action started");
   try {
-    const { admin } = await authenticate.admin(request);
+    const { admin, session } = await authenticate.admin(request);
     const body = await request.json();
 
     console.log("Received update request:", body);
@@ -46,6 +51,7 @@ export const action = async ({ request }) => {
 
     console.log("Formatted weights:", { formattedProductWeight, formattedPackagingWeight });
 
+    // 1. Update metafields in Shopify
     const mutation = `
       mutation {
         productUpdate(input: {
@@ -109,9 +115,80 @@ export const action = async ({ request }) => {
       );
     }
 
-    console.log("Metafields updated successfully");
+    // 2. Also update the local database
+    // Extract the numeric ID from the Shopify GID
+    const shopifyProductId = productId.replace('gid://shopify/Product/', '');
+    
+    // Get the store
+    const store = await prisma.store.findUnique({
+      where: { shopifyDomain: session.shop }
+    });
+    
+    if (!store) {
+      return json({ 
+        success: true, // Still succeeded in Shopify
+        shopifyUpdated: true,
+        databaseUpdated: false,
+        error: "Store not found in database",
+        product_weight: formattedProductWeight,
+        packaging_weight: formattedPackagingWeight 
+      });
+    }
+    
+    // Find and update the product in our database
+    const product = await prisma.product.findFirst({
+      where: {
+        shopifyProductId: shopifyProductId,
+        storeId: store.id
+      }
+    });
+    
+    if (product) {
+      // Parse weights as floats for database
+      const productWeightFloat = parseFloat(formattedProductWeight);
+      const packagingWeightFloat = parseFloat(formattedPackagingWeight);
+      
+      // Calculate packaging ratio
+      let packagingRatio = null;
+      if (productWeightFloat > 0) {
+        packagingRatio = packagingWeightFloat / productWeightFloat;
+      }
+      
+      const updatedProduct = await prisma.product.update({
+        where: {
+          id: product.id
+        },
+        data: {
+          productWeight: productWeightFloat,
+          packagingWeight: packagingWeightFloat,
+          packagingRatio: packagingRatio,
+          updatedAt: new Date()
+        }
+      });
+      
+      console.log("Product updated in database:", updatedProduct);
+      
+      // Update metrics in Prometheus
+      await updateProductMetrics(updatedProduct);
+      console.log("Metrics updated for product:", shopifyProductId);
+      
+    } else {
+      console.log(`Product not found in database: ${shopifyProductId}`);
+      return json({ 
+        success: true,
+        shopifyUpdated: true,
+        databaseUpdated: false,
+        message: "Product updated in Shopify but not found in local database",
+        product_weight: formattedProductWeight,
+        packaging_weight: formattedPackagingWeight 
+      });
+    }
+
+    console.log("Metafields and database updated successfully");
     return json({ 
       success: true,
+      shopifyUpdated: true,
+      databaseUpdated: true,
       product_weight: formattedProductWeight,
       packaging_weight: formattedPackagingWeight 
     });
