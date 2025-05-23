@@ -7,29 +7,37 @@ import {
   TextField,
 } from "@shopify/polaris";
 
-export default function SustainableMaterialsMetafieldEditor({ productId, initial_sustainable_materials }) {
+export default function SustainableMaterialsMetafieldEditor({
+  productId,
+  initial_sustainable_materials,
+}) {
   // Log props received when component mounts
   useEffect(() => {
-    console.log(`Component mounted for ${productId} with:`, { 
+    console.log(`Component mounted for ${productId} with:`, {
       productId,
-      initial_sustainable_materials
+      initial_sustainable_materials,
     });
   }, [productId, initial_sustainable_materials]);
 
   // Initialize state with provided values or 0
   const [sustainablePercent, setSustainablePercent] = useState(
-    initial_sustainable_materials !== undefined && initial_sustainable_materials !== null 
-    ? initial_sustainable_materials 
-    : 0);
+    initial_sustainable_materials !== undefined &&
+      initial_sustainable_materials !== null
+      ? initial_sustainable_materials
+      : 0,
+  );
 
   const [loading, setLoading] = useState(false);
   const [toastActive, setToastActive] = useState(false);
   const [toastError, setToastError] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  
+
   // Update state if props change
   useEffect(() => {
-    if (initial_sustainable_materials !== undefined && initial_sustainable_materials !== null) {
+    if (
+      initial_sustainable_materials !== undefined &&
+      initial_sustainable_materials !== null
+    ) {
       setSustainablePercent(initial_sustainable_materials);
     }
   }, [initial_sustainable_materials]);
@@ -88,10 +96,7 @@ export default function SustainableMaterialsMetafieldEditor({ productId, initial
 
   return (
     <>
-      <InlineStack 
-        gap="1000" 
-        wrap 
-      >
+      <InlineStack gap="1000" wrap>
         <TextField
           label="Edit % of Sustainable materials in product"
           type="number"
@@ -109,7 +114,10 @@ export default function SustainableMaterialsMetafieldEditor({ productId, initial
 
       {toastActive && (
         <Toast
-          content={toastMessage || (toastError ? "Failed to save metafield" : "Metafield saved")}
+          content={
+            toastMessage ||
+            (toastError ? "Failed to save metafield" : "Metafield saved")
+          }
           error={toastError}
           onDismiss={toggleToast}
         />

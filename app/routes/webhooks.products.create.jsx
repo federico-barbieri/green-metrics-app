@@ -14,102 +14,110 @@ export const action = async ({ request }) => {
   try {
     // Get the store
     const store = await prisma.store.findUnique({
-      where: { shopifyDomain: shop }
+      where: { shopifyDomain: shop },
     });
-    
+
     if (!store) {
       console.error(`Store not found: ${shop}`);
       return new Response();
     }
-    
+
     // Extract product data from webhook payload
     const productId = payload.id.toString();
     const productTitle = payload.title;
-    
+
     // Extract metafields (if available)
     const metafields = {};
-    
+
     if (payload.metafields) {
       for (const metafield of payload.metafields) {
-        if (metafield.namespace === 'custom') {
+        if (metafield.namespace === "custom") {
           switch (metafield.key) {
-            case 'sustainable_materials':
+            case "sustainable_materials":
               metafields.sustainableMaterials = parseFloat(metafield.value);
               break;
-            case 'locally_produced':
-              metafields.isLocallyProduced = metafield.value.toLowerCase() === 'true';
+            case "locally_produced":
+              metafields.isLocallyProduced =
+                metafield.value.toLowerCase() === "true";
               break;
-            case 'packaging_weight':
+            case "packaging_weight":
               metafields.packagingWeight = parseFloat(metafield.value);
               break;
-            case 'product_weight':
+            case "product_weight":
               metafields.productWeight = parseFloat(metafield.value);
               break;
           }
         }
       }
     }
-    
+
     // Calculate packaging ratio if both weights are available
-    if (metafields.packagingWeight && metafields.productWeight && metafields.productWeight > 0) {
-      metafields.packagingRatio = metafields.packagingWeight / metafields.productWeight;
+    if (
+      metafields.packagingWeight &&
+      metafields.productWeight &&
+      metafields.productWeight > 0
+    ) {
+      metafields.packagingRatio =
+        metafields.packagingWeight / metafields.productWeight;
     }
-    
+
     // Check if product has all needed metafields, if not, set default values
-    const hasAllMetafields = 
-      metafields.hasOwnProperty('isLocallyProduced') && 
-      metafields.hasOwnProperty('sustainableMaterials') &&
-      metafields.hasOwnProperty('packagingWeight') &&
-      metafields.hasOwnProperty('productWeight');
-    
+    const hasAllMetafields =
+      metafields.hasOwnProperty("isLocallyProduced") &&
+      metafields.hasOwnProperty("sustainableMaterials") &&
+      metafields.hasOwnProperty("packagingWeight") &&
+      metafields.hasOwnProperty("productWeight");
+
     // If metafields are missing, add them automatically
     if (!hasAllMetafields) {
-      console.log(`Product ${productTitle} missing metafields. Adding default values.`);
-      
+      console.log(
+        `Product ${productTitle} missing metafields. Adding default values.`,
+      );
+
       try {
         const metafieldsToAdd = [];
-        
+
         // Only add metafields that don't exist
-        if (!metafields.hasOwnProperty('isLocallyProduced')) {
+        if (!metafields.hasOwnProperty("isLocallyProduced")) {
           metafieldsToAdd.push({
             key: "locally_produced",
             namespace: "custom",
             type: "boolean",
-            value: "false"
+            value: "false",
           });
           metafields.isLocallyProduced = false;
         }
-        
-        if (!metafields.hasOwnProperty('sustainableMaterials')) {
+
+        if (!metafields.hasOwnProperty("sustainableMaterials")) {
           metafieldsToAdd.push({
             key: "sustainable_materials",
             namespace: "custom",
             type: "number_decimal",
-            value: "0.0"
+            value: "0.0",
           });
           metafields.sustainableMaterials = 0;
         }
-        
-        if (!metafields.hasOwnProperty('packagingWeight')) {
+
+        if (!metafields.hasOwnProperty("packagingWeight")) {
           metafieldsToAdd.push({
             key: "packaging_weight",
             namespace: "custom",
             type: "number_decimal",
-            value: "0.0"
+            value: "0.0",
           });
           metafields.packagingWeight = 0;
         }
-        
-        if (!metafields.hasOwnProperty('productWeight')) {
+
+        if (!metafields.hasOwnProperty("productWeight")) {
           metafieldsToAdd.push({
             key: "product_weight",
             namespace: "custom",
             type: "number_decimal",
-            value: "0.0"
+            value: "0.0",
           });
           metafields.productWeight = 0;
         }
-        
+
         if (metafieldsToAdd.length > 0) {
           const mutation = `
             mutation updateProductMetafields($input: ProductInput!) {
@@ -124,50 +132,56 @@ export const action = async ({ request }) => {
               }
             }
           `;
-          
+
           const response = await admin.graphql(mutation, {
             variables: {
               input: {
                 id: `gid://shopify/Product/${productId}`,
-                metafields: metafieldsToAdd
-              }
-            }
+                metafields: metafieldsToAdd,
+              },
+            },
           });
-          
+
           const responseJson = await response.json();
-          
+
           // Check for user errors
           const userErrors = responseJson.data?.productUpdate?.userErrors;
           if (userErrors && userErrors.length > 0) {
-            const errorMessages = userErrors.map(e => e.message).join(", ");
-            console.error(`Error setting metafields for product ${productTitle}: ${errorMessages}`);
+            const errorMessages = userErrors.map((e) => e.message).join(", ");
+            console.error(
+              `Error setting metafields for product ${productTitle}: ${errorMessages}`,
+            );
           } else {
-            console.log(`Set default metafields for new product ${productTitle}`);
+            console.log(
+              `Set default metafields for new product ${productTitle}`,
+            );
           }
         }
       } catch (error) {
-        console.error(`Error setting metafields for product ${productTitle}:`, error);
+        console.error(
+          `Error setting metafields for product ${productTitle}:`,
+          error,
+        );
       }
     }
-    
+
     console.log(`Adding new product: ${productId} - ${productTitle}`);
-    
+
     // Create product in database
     const newProduct = await prisma.product.create({
       data: {
         shopifyProductId: productId,
         title: productTitle,
         storeId: store.id,
-        ...metafields
-      }
+        ...metafields,
+      },
     });
-    
+
     console.log(`Product created: ${productId} for store: ${shop}`);
-    
+
     // Update metrics in Prometheus
     await updateProductMetrics(newProduct);
     console.log(`Metrics created for new product: ${productId}`);
-    
   } catch (error) {
     console.error(`Error handling product create: ${error.message}`);
     console.error(error.stack);

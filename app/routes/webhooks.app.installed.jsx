@@ -13,28 +13,28 @@ export const action = async ({ request }) => {
   if (session) {
     try {
       console.log(`Importing products for ${shop}`);
-      
+
       // First, get or create the store record
       let store = await prisma.store.findUnique({
-        where: { shopifyDomain: shop }
+        where: { shopifyDomain: shop },
       });
-      
+
       if (!store) {
         store = await prisma.store.create({
           data: {
             shopifyDomain: shop,
-            name: shop.split('.')[0] // Basic name from domain
-          }
+            name: shop.split(".")[0], // Basic name from domain
+          },
         });
         console.log(`Created store record for ${shop}`);
       }
-      
+
       // Use Admin API to fetch products
       const { admin } = session;
       let hasNextPage = true;
       let endCursor = null;
       let totalImported = 0;
-      
+
       while (hasNextPage) {
         // GraphQL query to fetch products in batches
         const response = await admin.graphql(
@@ -55,49 +55,53 @@ export const action = async ({ request }) => {
           }
           `,
           {
-            variables: { cursor: endCursor }
-          }
+            variables: { cursor: endCursor },
+          },
         );
-        
+
         const responseJson = await response.json();
         const products = responseJson.data.products.edges;
         const pageInfo = responseJson.data.products.pageInfo;
-        
+
         console.log(`Processing batch of ${products.length} products`);
-        
+
         // Process and save products
         for (const productEdge of products) {
           const shopifyProduct = productEdge.node;
-          const shopifyProductId = shopifyProduct.id.replace('gid://shopify/Product/', '');
-          
+          const shopifyProductId = shopifyProduct.id.replace(
+            "gid://shopify/Product/",
+            "",
+          );
+
           // Check if product already exists
           const existingProduct = await prisma.product.findFirst({
             where: {
               shopifyProductId: shopifyProductId,
-              storeId: store.id
-            }
+              storeId: store.id,
+            },
           });
-          
+
           if (!existingProduct) {
             // Create new product
             await prisma.product.create({
               data: {
                 shopifyProductId: shopifyProductId,
                 title: shopifyProduct.title,
-                storeId: store.id
-              }
+                storeId: store.id,
+              },
             });
             totalImported++;
           }
         }
-        
+
         // Check if there are more products to fetch
         hasNextPage = pageInfo.hasNextPage;
         endCursor = pageInfo.endCursor;
       }
-      
-      console.log(`Successfully imported ${totalImported} products for store: ${shop}`);
-      
+
+      console.log(
+        `Successfully imported ${totalImported} products for store: ${shop}`,
+      );
     } catch (error) {
       console.error(`Error importing products: ${error.message}`);
       console.error(error.stack);
