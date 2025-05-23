@@ -14,44 +14,43 @@ export const action = async ({ request }) => {
   try {
     // Get the store
     const store = await prisma.store.findUnique({
-      where: { shopifyDomain: shop }
+      where: { shopifyDomain: shop },
     });
-    
+
     if (!store) {
       console.error(`Store not found: ${shop}`);
       return new Response();
     }
-    
+
     // Extract product ID
     const productId = payload.id.toString();
-    
+
     console.log(`Deleting product: ${productId}`);
-    
+
     // Find the product first
     const product = await prisma.product.findFirst({
       where: {
         shopifyProductId: productId,
-        storeId: store.id
-      }
+        storeId: store.id,
+      },
     });
-    
+
     if (product) {
       // Mark product as deleted in Prometheus but keep the metrics data
       await markProductDeleted(product);
       console.log(`Marked product as deleted in metrics: ${productId}`);
-      
+
       // Delete product from database
       await prisma.product.delete({
         where: {
-          id: product.id
-        }
+          id: product.id,
+        },
       });
-      
+
       console.log(`Product deleted: ${productId} for store: ${shop}`);
     } else {
       console.log(`Product not found for deletion: ${productId}`);
     }
-    
   } catch (error) {
     console.error(`Error handling product delete: ${error.message}`);
     console.error(error.stack);

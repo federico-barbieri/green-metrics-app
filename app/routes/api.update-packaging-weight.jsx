@@ -4,7 +4,6 @@ import { authenticate } from "../shopify.server";
 import { PrismaClient } from "@prisma/client";
 import { updateProductMetrics } from "../utils/metrics";
 
-
 const prisma = new PrismaClient();
 
 // This is the action function that will be called when the form is submitted
@@ -24,17 +23,17 @@ export const action = async ({ request }) => {
 
     const formatAndClamp = (val) => {
       let num = parseFloat(val);
-      
+
       // Handle invalid input
       if (isNaN(num)) return null;
-      
+
       // Enforce min/max constraints
       if (num > 10) num = 10;
-      
+
       // Minimum of 1g (0.001kg) if not zero
       // The zero check allows for products that don't exist yet
       if (num < 0.001 && num !== 0) num = 0.001;
-      
+
       // Format to 3 decimal places (g precision in kg)
       return num.toFixed(3);
     };
@@ -43,13 +42,19 @@ export const action = async ({ request }) => {
     const formattedPackagingWeight = formatAndClamp(packaging_weight);
 
     if (formattedProductWeight === null || formattedPackagingWeight === null) {
-      return json({ 
-        success: false, 
-        error: "Invalid number input. Values must be between 0.001 and 10." 
-      }, { status: 400 });
+      return json(
+        {
+          success: false,
+          error: "Invalid number input. Values must be between 0.001 and 10.",
+        },
+        { status: 400 },
+      );
     }
 
-    console.log("Formatted weights:", { formattedProductWeight, formattedPackagingWeight });
+    console.log("Formatted weights:", {
+      formattedProductWeight,
+      formattedPackagingWeight,
+    });
 
     // 1. Update metafields in Shopify
     const mutation = `
@@ -97,100 +102,103 @@ export const action = async ({ request }) => {
     if (jsonRes.data?.productUpdate?.userErrors?.length > 0) {
       const errors = jsonRes.data.productUpdate.userErrors;
       console.log("GraphQL errors:", errors);
-      return json({ 
-        success: false, 
-        errors,
-        error: errors.map(e => e.message).join(", ")
-      }, { status: 400 });
+      return json(
+        {
+          success: false,
+          errors,
+          error: errors.map((e) => e.message).join(", "),
+        },
+        { status: 400 },
+      );
     }
 
     // Log the updated metafields to verify they were correctly set
     if (jsonRes.data?.productUpdate?.product?.metafields) {
-      console.log("Updated product metafields:", 
-        jsonRes.data.productUpdate.product.metafields.edges.map(e => ({
+      console.log(
+        "Updated product metafields:",
+        jsonRes.data.productUpdate.product.metafields.edges.map((e) => ({
           namespace: e.node.namespace,
           key: e.node.key,
-          value: e.node.value
-        }))
+          value: e.node.value,
+        })),
       );
     }
 
     // 2. Also update the local database
     // Extract the numeric ID from the Shopify GID
-    const shopifyProductId = productId.replace('gid://shopify/Product/', '');
-    
+    const shopifyProductId = productId.replace("gid://shopify/Product/", "");
+
     // Get the store
     const store = await prisma.store.findUnique({
-      where: { shopifyDomain: session.shop }
+      where: { shopifyDomain: session.shop },
     });
-    
+
     if (!store) {
-      return json({ 
+      return json({
         success: true, // Still succeeded in Shopify
         shopifyUpdated: true,
         databaseUpdated: false,
         error: "Store not found in database",
         product_weight: formattedProductWeight,
-        packaging_weight: formattedPackagingWeight 
+        packaging_weight: formattedPackagingWeight,
       });
     }
-    
+
     // Find and update the product in our database
     const product = await prisma.product.findFirst({
       where: {
         shopifyProductId: shopifyProductId,
-        storeId: store.id
-      }
+        storeId: store.id,
+      },
     });
-    
+
     if (product) {
       // Parse weights as floats for database
       const productWeightFloat = parseFloat(formattedProductWeight);
       const packagingWeightFloat = parseFloat(formattedPackagingWeight);
-      
+
       // Calculate packaging ratio
       let packagingRatio = null;
       if (productWeightFloat > 0) {
         packagingRatio = packagingWeightFloat / productWeightFloat;
       }
-      
+
       const updatedProduct = await prisma.product.update({
         where: {
-          id: product.id
+          id: product.id,
         },
         data: {
           productWeight: productWeightFloat,
           packagingWeight: packagingWeightFloat,
           packagingRatio: packagingRatio,
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       });
-      
+
       console.log("Product updated in database:", updatedProduct);
-      
+
       // Update metrics in Prometheus
       await updateProductMetrics(updatedProduct);
       console.log("Metrics updated for product:", shopifyProductId);
-      
     } else {
       console.log(`Product not found in database: ${shopifyProductId}`);
-      return json({ 
+      return json({
         success: true,
         shopifyUpdated: true,
         databaseUpdated: false,
         message: "Product updated in Shopify but not found in local database",
         product_weight: formattedProductWeight,
-        packaging_weight: formattedPackagingWeight 
+        packaging_weight: formattedPackagingWeight,
       });
     }
 
     console.log("Metafields and database updated successfully");
-    return json({ 
+    return json({
       success: true,
       shopifyUpdated: true,
       databaseUpdated: true,
       product_weight: formattedProductWeight,
-      packaging_weight: formattedPackagingWeight 
+      packaging_weight: formattedPackagingWeight,
     });
   } catch (error) {
     console.error("Error in action:", error);

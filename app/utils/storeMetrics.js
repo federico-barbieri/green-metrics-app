@@ -17,9 +17,9 @@ export async function updateStoreAggregatedMetrics(storeId) {
           where: {
             // Only include active products (not deleted)
             // You can add a "deleted" field later if needed
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     if (!store) {
@@ -30,38 +30,53 @@ export async function updateStoreAggregatedMetrics(storeId) {
     const products = store.products;
     const storeLabels = {
       store_id: storeId,
-      store_name: store.name || store.shopifyDomain.split('.')[0],
-      store_domain: store.shopifyDomain
+      store_name: store.name || store.shopifyDomain.split(".")[0],
+      store_domain: store.shopifyDomain,
     };
 
     // 1. Total product count
     metrics.storeProductCountGauge.set(storeLabels, products.length);
 
     // 2. Average sustainable materials percentage
-    const productsWithSustainableMaterials = products.filter(p => 
-      p.sustainableMaterials !== null && p.sustainableMaterials !== undefined
+    const productsWithSustainableMaterials = products.filter(
+      (p) =>
+        p.sustainableMaterials !== null && p.sustainableMaterials !== undefined,
     );
-    
+
     if (productsWithSustainableMaterials.length > 0) {
-      const avgSustainableMaterials = productsWithSustainableMaterials.reduce(
-        (sum, p) => sum + p.sustainableMaterials, 0
-      ) / productsWithSustainableMaterials.length;
-      
-      metrics.storeAvgSustainableMaterialsGauge.set(storeLabels, avgSustainableMaterials);
+      const avgSustainableMaterials =
+        productsWithSustainableMaterials.reduce(
+          (sum, p) => sum + p.sustainableMaterials,
+          0,
+        ) / productsWithSustainableMaterials.length;
+
+      metrics.storeAvgSustainableMaterialsGauge.set(
+        storeLabels,
+        avgSustainableMaterials,
+      );
     }
 
     // 3. Count of locally produced products
-    const localProductsCount = products.filter(p => p.isLocallyProduced === true).length;
+    const localProductsCount = products.filter(
+      (p) => p.isLocallyProduced === true,
+    ).length;
     metrics.storeLocalProductsGauge.set(storeLabels, localProductsCount);
 
     // 4. Average delivery distance (if available)
-    if (store.avgDeliveryDistance !== null && store.avgDeliveryDistance !== undefined) {
-      metrics.storeAvgDeliveryDistanceGauge.set(storeLabels, store.avgDeliveryDistance);
+    if (
+      store.avgDeliveryDistance !== null &&
+      store.avgDeliveryDistance !== undefined
+    ) {
+      metrics.storeAvgDeliveryDistanceGauge.set(
+        storeLabels,
+        store.avgDeliveryDistance,
+      );
     }
 
-    console.log(`📊 Updated store metrics for ${store.name || store.shopifyDomain}`);
+    console.log(
+      `📊 Updated store metrics for ${store.name || store.shopifyDomain}`,
+    );
     return true;
-
   } catch (error) {
     console.error("Error updating store aggregated metrics:", error);
     return false;
@@ -74,7 +89,7 @@ export async function updateStoreAggregatedMetrics(storeId) {
 export async function updateAllStoresMetrics() {
   try {
     const stores = await prisma.store.findMany({
-      select: { id: true }
+      select: { id: true },
     });
 
     for (const store of stores) {

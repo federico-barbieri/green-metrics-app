@@ -13,72 +13,78 @@ export const action = async ({ request }) => {
   try {
     // Get the store
     const store = await prisma.store.findUnique({
-      where: { shopifyDomain: shop }
+      where: { shopifyDomain: shop },
     });
-    
+
     if (!store) {
       console.error(`Store not found: ${shop}`);
       return new Response();
     }
-    
+
     // Extract product data
     const productId = payload.id.toString();
     const productTitle = payload.title;
-    
+
     // Extract metafields (if available)
     const metafields = {};
-    
+
     if (payload.metafields) {
       for (const metafield of payload.metafields) {
-        if (metafield.namespace === 'custom') {
+        if (metafield.namespace === "custom") {
           switch (metafield.key) {
-            case 'sustainable_materials':
+            case "sustainable_materials":
               metafields.sustainableMaterials = parseFloat(metafield.value);
               break;
-            case 'locally_produced':
-              metafields.isLocallyProduced = metafield.value.toLowerCase() === 'true';
+            case "locally_produced":
+              metafields.isLocallyProduced =
+                metafield.value.toLowerCase() === "true";
               break;
-            case 'packaging_weight':
+            case "packaging_weight":
               metafields.packagingWeight = parseFloat(metafield.value);
               break;
-            case 'product_weight':
+            case "product_weight":
               metafields.productWeight = parseFloat(metafield.value);
               break;
           }
         }
       }
     }
-    
+
     // Calculate packaging ratio if both weights are available
-    if (metafields.packagingWeight && metafields.productWeight && metafields.productWeight > 0) {
-      metafields.packagingRatio = metafields.packagingWeight / metafields.productWeight;
+    if (
+      metafields.packagingWeight &&
+      metafields.productWeight &&
+      metafields.productWeight > 0
+    ) {
+      metafields.packagingRatio =
+        metafields.packagingWeight / metafields.productWeight;
     }
-    
+
     console.log(`Updating product: ${productId} - ${productTitle}`);
-    
+
     // Find the product
     const product = await prisma.product.findFirst({
       where: {
         shopifyProductId: productId,
-        storeId: store.id
-      }
+        storeId: store.id,
+      },
     });
-    
+
     let updatedProduct;
-    
+
     if (product) {
       // Update existing product
       updatedProduct = await prisma.product.update({
         where: {
-          id: product.id
+          id: product.id,
         },
         data: {
           title: productTitle,
           ...metafields,
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       });
-      
+
       console.log(`Product updated: ${productId} for store: ${shop}`);
     } else {
       // If product doesn't exist yet, create it
@@ -87,19 +93,18 @@ export const action = async ({ request }) => {
           shopifyProductId: productId,
           title: productTitle,
           storeId: store.id,
-          ...metafields
-        }
+          ...metafields,
+        },
       });
-      
+
       console.log(`Product created on update: ${productId} for store: ${shop}`);
     }
-    
+
     // Update metrics in Prometheus after DB update
     if (updatedProduct) {
       await updateProductMetrics(updatedProduct);
       console.log(`Metrics updated for product: ${productId}`);
     }
-    
   } catch (error) {
     console.error(`Error handling product update: ${error.message}`);
     console.error(error.stack);

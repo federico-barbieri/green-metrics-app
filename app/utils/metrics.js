@@ -14,17 +14,18 @@ export async function recordProductMetricsHistory(product) {
     // Check if this is actually a change by comparing with the last history record
     const lastHistory = await prisma.productMetricsHistory.findFirst({
       where: { productId: product.id },
-      orderBy: { timestamp: 'desc' },
+      orderBy: { timestamp: "desc" },
     });
-    
+
     // Check if any metrics have actually changed
-    const hasChanges = !lastHistory || 
+    const hasChanges =
+      !lastHistory ||
       lastHistory.sustainableMaterials !== product.sustainableMaterials ||
       lastHistory.isLocallyProduced !== product.isLocallyProduced ||
       lastHistory.packagingWeight !== product.packagingWeight ||
       lastHistory.productWeight !== product.productWeight ||
       lastHistory.packagingRatio !== product.packagingRatio;
-    
+
     if (hasChanges) {
       await prisma.productMetricsHistory.create({
         data: {
@@ -33,14 +34,16 @@ export async function recordProductMetricsHistory(product) {
           isLocallyProduced: product.isLocallyProduced,
           packagingWeight: product.packagingWeight,
           productWeight: product.productWeight,
-          packagingRatio: product.packagingRatio
-        }
+          packagingRatio: product.packagingRatio,
+        },
       });
-      
-      console.log(`📊 Recorded metrics history for product ${product.title} (${product.shopifyProductId})`);
+
+      console.log(
+        `📊 Recorded metrics history for product ${product.title} (${product.shopifyProductId})`,
+      );
       return true;
     }
-    
+
     return false; // No changes detected
   } catch (error) {
     console.error("Error recording product metrics history:", error);
@@ -59,62 +62,71 @@ export async function updateProductMetrics(product) {
       console.warn("Missing required fields for metrics update:", product);
       return false;
     }
-    
+
     // Use product title or a fallback if not available
     const productTitle = product.title || `Product ${product.shopifyProductId}`;
-    
+
     // Set product as active
     metrics.productStatusGauge.set(
-      { 
-        product_id: product.shopifyProductId, 
-        product_title: productTitle, 
-        store_id: product.storeId 
+      {
+        product_id: product.shopifyProductId,
+        product_title: productTitle,
+        store_id: product.storeId,
       },
-      1 // 1 = active
+      1, // 1 = active
     );
-    
+
     // Update sustainable materials percentage metric
-    if (product.sustainableMaterials !== null && product.sustainableMaterials !== undefined) {
+    if (
+      product.sustainableMaterials !== null &&
+      product.sustainableMaterials !== undefined
+    ) {
       metrics.sustainableMaterialsGauge.set(
-        { 
-          product_id: product.shopifyProductId, 
-          product_title: productTitle, 
-          store_id: product.storeId 
+        {
+          product_id: product.shopifyProductId,
+          product_title: productTitle,
+          store_id: product.storeId,
         },
-        product.sustainableMaterials
+        product.sustainableMaterials,
       );
     }
-    
+
     // Update packaging ratio metric
-    if (product.packagingRatio !== null && product.packagingRatio !== undefined) {
+    if (
+      product.packagingRatio !== null &&
+      product.packagingRatio !== undefined
+    ) {
       metrics.packagingRatioGauge.set(
-        { 
-          product_id: product.shopifyProductId, 
-          product_title: productTitle, 
-          store_id: product.storeId 
+        {
+          product_id: product.shopifyProductId,
+          product_title: productTitle,
+          store_id: product.storeId,
         },
-        product.packagingRatio
+        product.packagingRatio,
       );
     }
-    
+
     // Update locally produced metric (convert boolean to 1 or 0)
-    if (product.isLocallyProduced !== null && product.isLocallyProduced !== undefined) {
+    if (
+      product.isLocallyProduced !== null &&
+      product.isLocallyProduced !== undefined
+    ) {
       metrics.locallyProducedGauge.set(
-        { 
-          product_id: product.shopifyProductId, 
-          product_title: productTitle, 
-          store_id: product.storeId 
+        {
+          product_id: product.shopifyProductId,
+          product_title: productTitle,
+          store_id: product.storeId,
         },
-        product.isLocallyProduced ? 1 : 0
+        product.isLocallyProduced ? 1 : 0,
       );
     }
-    
+
     // Record the change in history
     await recordProductMetricsHistory(product);
-    
+
     // Update store-level aggregated metrics
     await updateStoreAggregatedMetrics(product.storeId);
-    
+
     return true;
   } catch (error) {
     console.error("Error updating product metrics:", error);
@@ -132,23 +144,23 @@ export async function getProductMetricsHistory(productId, days = 1825) {
   try {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
-    
+
     const history = await prisma.productMetricsHistory.findMany({
-      where: { 
+      where: {
         productId,
-        timestamp: { gte: startDate }
+        timestamp: { gte: startDate },
       },
-      orderBy: { timestamp: 'asc' },
+      orderBy: { timestamp: "asc" },
       include: {
         product: {
           select: {
             title: true,
-            shopifyProductId: true
-          }
-        }
-      }
+            shopifyProductId: true,
+          },
+        },
+      },
     });
-    
+
     return history;
   } catch (error) {
     console.error("Error fetching product metrics history:", error);

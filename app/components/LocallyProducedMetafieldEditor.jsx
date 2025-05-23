@@ -8,25 +8,27 @@ import {
   Toast,
 } from "@shopify/polaris";
 
-export default function LocallyProducedMetafieldEditor({ productId, locally_produced }) {
+export default function LocallyProducedMetafieldEditor({
+  productId,
+  locally_produced,
+}) {
   const [isLocal, setIsLocal] = useState(Boolean(locally_produced));
   const [loading, setLoading] = useState(false);
   const [toastActive, setToastActive] = useState(false);
   const [toastError, setToastError] = useState(false);
 
   const handleSave = async () => {
-    
     setLoading(true);
     try {
-        // Send the updated value to the server
-        const res = await fetch("/api/update-locally-produced", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-            productId,
-            locally_produced: isLocal,
-            }),
-        });
+      // Send the updated value to the server
+      const res = await fetch("/api/update-locally-produced", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId,
+          locally_produced: isLocal,
+        }),
+      });
 
       const data = await res.json();
 

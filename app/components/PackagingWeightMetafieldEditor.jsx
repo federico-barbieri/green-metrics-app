@@ -10,27 +10,35 @@ import {
   Box,
 } from "@shopify/polaris";
 
-export default function PackagingWeightMetafieldEditor({ productId, product_weight, packaging_weight }) {
+export default function PackagingWeightMetafieldEditor({
+  productId,
+  product_weight,
+  packaging_weight,
+}) {
   // Log props received when component mounts
   useEffect(() => {
-    console.log(`Component mounted for ${productId} with:`, { 
-      product_weight, 
-      packaging_weight 
+    console.log(`Component mounted for ${productId} with:`, {
+      product_weight,
+      packaging_weight,
     });
   }, [productId, product_weight, packaging_weight]);
 
   // Initialize with provided values or 0
   const [productWeight, setProductWeight] = useState(
-    product_weight !== undefined && product_weight !== null ? product_weight : 0
+    product_weight !== undefined && product_weight !== null
+      ? product_weight
+      : 0,
   );
   const [packagingWeight, setPackagingWeight] = useState(
-    packaging_weight !== undefined && packaging_weight !== null ? packaging_weight : 0
+    packaging_weight !== undefined && packaging_weight !== null
+      ? packaging_weight
+      : 0,
   );
   const [loading, setLoading] = useState(false);
   const [toastActive, setToastActive] = useState(false);
   const [toastError, setToastError] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  
+
   // Update state if props change
   useEffect(() => {
     if (product_weight !== undefined && product_weight !== null) {
@@ -40,10 +48,12 @@ export default function PackagingWeightMetafieldEditor({ productId, product_weig
       setPackagingWeight(packaging_weight);
     }
   }, [product_weight, packaging_weight]);
-  
+
   // Calculate derived values
-  const totalWeightInGrams = ((productWeight || 0) + (packagingWeight || 0)) * 1000;
-  const pwRatio = productWeight > 0 ? (packagingWeight / productWeight).toFixed(2) : 0;
+  const totalWeightInGrams =
+    ((productWeight || 0) + (packagingWeight || 0)) * 1000;
+  const pwRatio =
+    productWeight > 0 ? (packagingWeight / productWeight).toFixed(2) : 0;
 
   // Validation function for the UI (separate from server validation)
   const validateWeight = (weight) => {
@@ -60,18 +70,18 @@ export default function PackagingWeightMetafieldEditor({ productId, product_weig
     // Validate before saving
     const productError = validateWeight(productWeight);
     const packagingError = validateWeight(packagingWeight);
-    
+
     if (productError || packagingError) {
       setToastError(true);
       setToastMessage(productError || packagingError);
       setToastActive(true);
       return;
     }
-    
+
     setLoading(true);
     try {
       console.log("Saving values:", { productWeight, packagingWeight });
-      
+
       // Send the updated value to the server
       const res = await fetch("/api/update-packaging-weight", {
         method: "POST",
@@ -116,7 +126,7 @@ export default function PackagingWeightMetafieldEditor({ productId, product_weig
           type="number"
           value={String(productWeight)}
           onChange={(v) => {
-            const value = v === '' ? 0 : parseFloat(v);
+            const value = v === "" ? 0 : parseFloat(v);
             setProductWeight(value);
           }}
           autoComplete="off"
@@ -131,7 +141,7 @@ export default function PackagingWeightMetafieldEditor({ productId, product_weig
           type="number"
           value={String(packagingWeight)}
           onChange={(v) => {
-            const value = v === '' ? 0 : parseFloat(v);
+            const value = v === "" ? 0 : parseFloat(v);
             setPackagingWeight(value);
           }}
           autoComplete="off"
@@ -147,10 +157,11 @@ export default function PackagingWeightMetafieldEditor({ productId, product_weig
           </Button>
         </div>
       </InlineStack>
-      
+
       <Box paddingBlockStart="3">
         <Text variant="bodySm">
-          Total Weight: {totalWeightInGrams.toFixed(0)}g | Packaging-to-Product Ratio: {pwRatio}
+          Total Weight: {totalWeightInGrams.toFixed(0)}g | Packaging-to-Product
+          Ratio: {pwRatio}
         </Text>
       </Box>
 

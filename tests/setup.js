@@ -1,21 +1,21 @@
-import '@testing-library/jest-dom'
-import { beforeAll, afterAll, beforeEach, vi } from 'vitest'
-import { setupServer } from 'msw/node'
+import "@testing-library/jest-dom";
+import { beforeAll, afterAll, beforeEach} from "vitest";
+import { setupServer } from "msw/node";
 
-const handlers = []
-const server = setupServer(...handlers)
+const handlers = [];
+const server = setupServer(...handlers);
 
 beforeAll(() => {
-  server.listen({ onUnhandledRequest: 'error' })
-})
+  server.listen({ onUnhandledRequest: "error" });
+});
 
 afterAll(() => {
-  server.close()
-})
+  server.close();
+});
 
 beforeEach(() => {
-  server.resetHandlers()
-})
+  server.resetHandlers();
+});
 
 // Mock environment variables for testing
-process.env.NODE_ENV = 'test'
+process.env.NODE_ENV = "test";

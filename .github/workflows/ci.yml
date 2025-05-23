@@ -1,4 +1,5 @@
-name: Test Suite
+# .github/workflows/ci-cd.yml
+name: Green Metrics Shopify App CI/CD Pipeline
 
 on:
   push:
@@ -6,9 +7,13 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  NODE_VERSION: '18'
+
 jobs:
-  test-suite:
-    name: Run Tests
+  # Stage 1: Lint, Audit & Security
+  lint-audit-security:
+    name: Code Quality & Security
     runs-on: ubuntu-latest
     
     steps:
@@ -18,13 +23,117 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 18
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Prettier Check
+      run: |
+        echo "Running Prettier check..."
+        npx prettier --check .
+    
+    - name: ESLint Check
+      run: |
+        echo "Running ESLint..."
+        npx eslint . --max-warnings 0
+    
+    - name: 🔒 NPM Security Audit
+      run: |
+        echo "Running npm audit..."
+        npm audit --audit-level=high
+    
+    - name: OWASP Dependency Check
+      uses: dependency-check/Dependency-Check_Action@main
+      with:
+        project: 'sustainability-app'
+        path: '.'
+        format: 'ALL'
+        args: >
+          --enableRetired
+          --enableExperimental
+          --failOnCVSS 7
+          --exclude "**/node_modules/**"
+          --exclude "**/test/**"
+          --exclude "**/tests/**"
+    
+    - name: Upload OWASP Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: owasp-dependency-check-${{ github.run_id }}
+        path: reports/
+        retention-days: 30
+
+  # 🧪 Stage 2: Testing
+  test-suite:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    needs: lint-audit-security
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
     
     - name: Install dependencies
       run: npm ci
     
     - name: Run Tests
-      run: npm run test:run
+      run: |
+        echo "Running test suite..."
+        npm run test:run
       env:
         NODE_ENV: test
+    
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ github.run_id }}
+        path: |
+          coverage/
+          test-results/
+        retention-days: 30
+
+  # Stage 3: Build
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: [lint-audit-security, test-suite]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build Application
+      run: |
+        echo "Building Remix application..."
+        npm run build
+      env:
+        NODE_ENV: production
+    
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts-${{ github.run_id }}
+        path: |
+          build/
+          public/build/
+        retention-days: 7
