@@ -29,9 +29,11 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Prettier Check
+    - name: Prettier Format and Check
       run: |
-        echo "Running Prettier check..."
+        echo "Running Prettier format..."
+        npx prettier --write .
+        echo "Checking if formatting is consistent..."
         npx prettier --check .
     
     - name: ESLint Check
