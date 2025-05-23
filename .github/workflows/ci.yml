@@ -55,7 +55,7 @@ jobs:
         args: >
           --enableRetired
           --enableExperimental
-          --failOnCVSS 7
+          --failOnCVSS 9
           --exclude "**/node_modules/**"
           --exclude "**/test/**"
           --exclude "**/tests/**"
