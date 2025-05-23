@@ -1,6 +1,7 @@
 // app/utils/metrics.js
 import { metrics } from "../routes/metrics";
 import { PrismaClient } from "@prisma/client";
+import { updateStoreAggregatedMetrics } from "./storeMetrics";
 
 const prisma = new PrismaClient();
 
@@ -110,6 +111,9 @@ export async function updateProductMetrics(product) {
     
     // Record the change in history
     await recordProductMetricsHistory(product);
+    
+    // Update store-level aggregated metrics
+    await updateStoreAggregatedMetrics(product.storeId);
     
     return true;
   } catch (error) {
