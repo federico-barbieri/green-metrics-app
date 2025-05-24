@@ -14,7 +14,7 @@ database.sqlite
 .env
 .env.*
 
-
+coverage/*
 
 
 

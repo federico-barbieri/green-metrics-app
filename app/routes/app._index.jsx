@@ -1,5 +1,5 @@
 // app/routes/app._index.jsx
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import {
@@ -22,6 +22,90 @@ import { updateProductMetrics } from "../utils/metrics";
 import { updateStoreAggregatedMetrics } from "../utils/storeMetrics";
 
 const prisma = new PrismaClient();
+
+// PDF Download Component
+function SustainabilityReportDownload() {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState(null);
+  const shopify = useAppBridge();
+
+  const handleDownloadReport = async () => {
+    setIsGenerating(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/generate-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate report');
+      }
+      
+      // Download the PDF
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sustainability-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      shopify.toast.show("Sustainability report downloaded successfully!");
+      
+    } catch (err) {
+      console.error('Error downloading report:', err);
+      setError(err.message);
+      shopify.toast.show("Failed to generate report", { isError: true });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <Card>
+      <BlockStack gap="400">
+        <BlockStack gap="200">
+          <Text as="h2" variant="headingMd">
+            📊 Sustainability Report
+          </Text>
+          <Text variant="bodyMd" as="p" color="subdued">
+            Generate a comprehensive PDF report with your store's sustainability metrics, 
+            trends, and actionable recommendations.
+          </Text>
+        </BlockStack>
+        
+        {error && (
+          <Banner status="critical" title="Error generating report">
+            <p>{error}</p>
+          </Banner>
+        )}
+        
+        <Box>
+          <Button
+            primary
+            loading={isGenerating}
+            disabled={isGenerating}
+            onClick={handleDownloadReport}
+          >
+            {isGenerating ? 'Generating Report...' : 'Download Sustainability Report'}
+          </Button>
+        </Box>
+        
+        <Text variant="bodySm" as="p" color="subdued">
+          Report includes: Sustainability score, material analysis, packaging efficiency, 
+          delivery distance metrics, and personalized recommendations.
+        </Text>
+      </BlockStack>
+    </Card>
+  );
+}
 
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
@@ -615,6 +699,9 @@ export default function Index() {
     importFetcher.submit({ action: "import_products" }, { method: "POST" });
   };
 
+  // Check if store has products and setup is complete
+  const canGenerateReport = store.productCount > 0 && !needsMetafieldSetup && !needsImport;
+
   return (
     <Page>
       <TitleBar title="Green Metrics App">
@@ -751,6 +838,10 @@ export default function Index() {
                 )}
               </BlockStack>
             </Card>
+
+            {/* NEW: Sustainability Report Download Card */}
+            {canGenerateReport && <SustainabilityReportDownload />}
+            
           </Layout.Section>
           <Layout.Section variant="oneThird">
             <BlockStack gap="500">
