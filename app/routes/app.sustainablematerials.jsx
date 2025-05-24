@@ -1,4 +1,4 @@
-// app/routes/app.packagingweight.jsx
+// app/routes/app.sustainablematerials.jsx
 import {
   Card,
   Layout,
@@ -82,9 +82,12 @@ export const loader = async ({ request }) => {
       if (sustainablePercent >= 70) {
         badgeStatus = "success";
         badgeLabel = "Sustainable";
-      } else if (sustainablePercent <= 69) {
+      } else if (sustainablePercent < 70 && sustainablePercent > 40) {
         badgeStatus = "warning";
         badgeLabel = "Moderate";
+      } else {
+        badgeStatus = "critical";
+        badgeLabel = "Low";
       }
 
       return {

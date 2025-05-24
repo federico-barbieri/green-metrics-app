@@ -1,3 +1,4 @@
+// app/routes/webhooks.app.scopes_update.jsx
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 

@@ -2,7 +2,7 @@
 import { authenticate } from "../shopify.server";
 import { PrismaClient } from "@prisma/client";
 import haversine from "../utils/haversine";
-import { updateOrderMetrics, updateStoreMetrics } from "../utils/metrics"; // Import metrics utilities
+import { updateStoreAggregatedMetrics } from "../utils/storeMetrics";
 
 const prisma = new PrismaClient();
 
@@ -111,12 +111,10 @@ export const action = async ({ request }) => {
         deliveryDistance,
       },
     });
+    console.log(`Order ${shopifyOrderName} saved to database with ID: ${updatedOrder.id}`);
+
 
     console.log(`Order ${shopifyOrderName} saved to database`);
-
-    // Update Prometheus metrics for the order
-    await updateOrderMetrics(updatedOrder);
-    console.log(`Metrics updated for order: ${shopifyOrderName}`);
 
     // Update the store's average delivery distance
     const orders = await prisma.order.findMany({
@@ -145,13 +143,13 @@ export const action = async ({ request }) => {
         `Updated average delivery distance: ${avgDeliveryDistance.toFixed(2)} km`,
       );
 
-      const updatedStore = await prisma.store.update({
+      await prisma.store.update({
         where: { id: store.id },
         data: { avgDeliveryDistance },
       });
 
-      // Update Prometheus metrics for the store
-      await updateStoreMetrics(updatedStore);
+      // Update store-level aggregated metrics (including delivery distance)
+      await updateStoreAggregatedMetrics(store.id);
       console.log(
         `Store metrics updated with new average delivery distance: ${avgDeliveryDistance.toFixed(2)} km`,
       );

@@ -1,3 +1,4 @@
+// app/routes/metrics.js
 import * as promClient from "prom-client";
 
 // Clear all existing metrics to avoid "already registered" errors in development
