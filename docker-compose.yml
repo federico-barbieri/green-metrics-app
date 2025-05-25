@@ -1,5 +1,4 @@
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     restart: unless-stopped
@@ -9,13 +8,7 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # Shopify App
   app:
     build: .
     restart: unless-stopped
@@ -23,6 +16,7 @@ services:
       - "8080:8080"
     environment:
       - NODE_ENV=production
+      - PORT=8080
       - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
       - SHOPIFY_API_KEY=${SHOPIFY_API_KEY}
       - SHOPIFY_API_SECRET=${SHOPIFY_API_SECRET}
@@ -31,17 +25,9 @@ services:
       - SHOPIFY_APP_URL=${SHOPIFY_APP_URL}
       - PROMETHEUS_URL=http://prometheus:9090
     depends_on:
-      postgres:
-        condition: service_healthy
-      prometheus:
-        condition: service_started
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - postgres
+      - prometheus
 
-  # Prometheus for metrics
   prometheus:
     image: prom/prometheus:latest
     restart: unless-stopped
@@ -53,21 +39,12 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
-      - "--web.console.libraries=/etc/prometheus/console_libraries"
-      - "--web.console.templates=/etc/prometheus/consoles"
-      - "--web.enable-lifecycle"
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
-  # Grafana for visualization
   grafana:
     image: grafana/grafana:latest
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "3001:3000"  # Fixed: external 3001, internal 3000
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
@@ -78,17 +55,8 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       - prometheus
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
 volumes:
   postgres_data:
   prometheus_data:
   grafana_data:
-
-networks:
-  default:
-    name: green-metrics-network
