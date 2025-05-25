@@ -2,7 +2,6 @@
 
 import { authenticate } from "../shopify.server";
 import { PrismaClient } from "@prisma/client";
-import { markProductDeleted } from "../utils/metrics"; // Import the metrics marking function
 
 const prisma = new PrismaClient();
 
@@ -36,10 +35,7 @@ export const action = async ({ request }) => {
     });
 
     if (product) {
-      // Mark product as deleted in Prometheus but keep the metrics data
-      await markProductDeleted(product);
-      console.log(`Marked product as deleted in metrics: ${productId}`);
-
+     
       // Delete product from database
       await prisma.product.delete({
         where: {
