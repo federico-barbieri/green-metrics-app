@@ -5,7 +5,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=8080
-      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@green-metrics-postgres:5432/${DB_NAME}
+      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_STRING}:5432/${DB_NAME}
       - SHOPIFY_API_KEY=${SHOPIFY_API_KEY}
       - SHOPIFY_API_SECRET=${SHOPIFY_API_SECRET}
       - SCOPES=${SCOPES}
