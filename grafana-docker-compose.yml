@@ -3,13 +3,12 @@ services:
     image: grafana/grafana:latest
     restart: unless-stopped
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=https://${GRAFANA_ROOT_URL}
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning/dashboards:/tmp/dashboards
     entrypoint:
       - sh
       - -c
@@ -36,7 +35,6 @@ services:
             editable: true
             options:
               path: /etc/grafana/provisioning/dashboards' > /etc/grafana/provisioning/dashboards/dashboard.yml &&
-        cp /tmp/dashboards/*.json /etc/grafana/provisioning/dashboards/ 2>/dev/null || true &&
         /run.sh
     networks:
       - monitoring-network
