@@ -3,8 +3,8 @@ services:
     image: grafana/grafana:latest
     restart: unless-stopped
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=https://${GRAFANA_ROOT_URL}
     volumes:
@@ -14,7 +14,6 @@ services:
       - -c
       - |
         mkdir -p /etc/grafana/provisioning/datasources
-        mkdir -p /etc/grafana/provisioning/dashboards
         echo 'apiVersion: 1
         datasources:
           - name: Prometheus
@@ -25,16 +24,6 @@ services:
             basicAuth: false
             isDefault: true
             editable: false' > /etc/grafana/provisioning/datasources/prometheus.yml &&
-        echo 'apiVersion: 1
-        providers:
-          - name: "Sustainability Metrics"
-            orgId: 1
-            folder: ""
-            type: file
-            disableDeletion: false
-            editable: true
-            options:
-              path: /etc/grafana/provisioning/dashboards' > /etc/grafana/provisioning/dashboards/dashboard.yml &&
         /run.sh
     networks:
       - monitoring-network
