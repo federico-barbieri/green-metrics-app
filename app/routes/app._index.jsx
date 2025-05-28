@@ -73,7 +73,7 @@ function SustainabilityReportDownload() {
       <BlockStack gap="400">
         <BlockStack gap="200">
           <Text as="h2" variant="headingMd" color="red">
-            📊 Sustainability Reporttt
+            📊 Sustainability Report
           </Text>
           <Text variant="bodyMd" as="p" color="subdued">
             Generate a comprehensive PDF report with your store's sustainability metrics, 
