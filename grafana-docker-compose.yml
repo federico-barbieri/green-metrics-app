@@ -20,7 +20,7 @@ services:
             type: prometheus
             access: proxy
             orgId: 1
-            url: http://prometheus:9090
+            url: https://prometheus.sustainablefashionmetrics.net
             basicAuth: false
             isDefault: true
             editable: false' > /etc/grafana/provisioning/datasources/prometheus.yml &&
