@@ -18,7 +18,7 @@ export async function action({ request }) {
     });
 
     // Log successful webhook receipt
-    console.log("Coolify webhook processed successfully");
+    console.log("Coolify webhook processed successfullyy");
     
     return json({ 
       success: true, 
