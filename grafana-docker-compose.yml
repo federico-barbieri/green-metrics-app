@@ -25,11 +25,6 @@ services:
             isDefault: true
             editable: false' > /etc/grafana/provisioning/datasources/prometheus.yml &&
         /run.sh
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     networks:
       - monitoring-network
 
