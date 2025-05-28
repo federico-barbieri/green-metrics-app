@@ -9,11 +9,13 @@ services:
       - GF_SERVER_ROOT_URL=https://${GRAFANA_ROOT_URL}
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/dashboards:/tmp/dashboards
     entrypoint:
       - sh
       - -c
       - |
         mkdir -p /etc/grafana/provisioning/datasources
+        mkdir -p /etc/grafana/provisioning/dashboards
         echo 'apiVersion: 1
         datasources:
           - name: Prometheus
@@ -24,6 +26,17 @@ services:
             basicAuth: false
             isDefault: true
             editable: false' > /etc/grafana/provisioning/datasources/prometheus.yml &&
+        echo 'apiVersion: 1
+        providers:
+          - name: "Sustainability Metrics"
+            orgId: 1
+            folder: ""
+            type: file
+            disableDeletion: false
+            editable: true
+            options:
+              path: /etc/grafana/provisioning/dashboards' > /etc/grafana/provisioning/dashboards/dashboard.yml &&
+        cp /tmp/dashboards/*.json /etc/grafana/provisioning/dashboards/ 2>/dev/null || true &&
         /run.sh
     networks:
       - monitoring-network
