@@ -9,7 +9,22 @@ services:
       - GF_SERVER_ROOT_URL=https://${GRAFANA_ROOT_URL}
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/prometheus.yml
+    entrypoint:
+      - sh
+      - -c
+      - |
+        mkdir -p /etc/grafana/provisioning/datasources
+        echo 'apiVersion: 1
+        datasources:
+          - name: Prometheus
+            type: prometheus
+            access: proxy
+            orgId: 1
+            url: http://prometheus:9090
+            basicAuth: false
+            isDefault: true
+            editable: false' > /etc/grafana/provisioning/datasources/prometheus.yml &&
+        /run.sh
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
       interval: 30s
