@@ -72,7 +72,7 @@ function SustainabilityReportDownload() {
     <Card>
       <BlockStack gap="400">
         <BlockStack gap="200">
-          <Text as="h2" variant="headingMd">
+          <Text as="h2" variant="headingMd" color="red">
             📊 Sustainability Report
           </Text>
           <Text variant="bodyMd" as="p" color="subdued">
