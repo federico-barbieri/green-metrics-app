@@ -13,4 +13,10 @@ services:
       - HOST=${HOST}
       - SHOPIFY_APP_URL=${SHOPIFY_APP_URL}
       - PROMETHEUS_URL=http://prometheus:9090
+    networks:
+      - monitoring-network
+    
+networks:
+  monitoring-network:
+    driver: bridge
 
