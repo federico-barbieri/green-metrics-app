@@ -3,8 +3,46 @@ services:
     image: prom/prometheus:latest
     restart: unless-stopped
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
+    environment:
+      - |
+        PROMETHEUS_CONFIG=
+        global:
+          scrape_interval: 15s
+          evaluation_interval: 15s
+        scrape_configs:
+          - job_name: "prometheus"
+            static_configs:
+              - targets: ["localhost:9090"]
+          - job_name: "shopify-app"
+            static_configs:
+              - targets: ["app:8080"]
+            metrics_path: "/metrics"
+            scrape_interval: 10s
+            scrape_timeout: 5s
+    entrypoint: 
+      - sh
+      - -c
+      - |
+        echo 'global:
+          scrape_interval: 15s
+          evaluation_interval: 15s
+        scrape_configs:
+          - job_name: "prometheus"
+            static_configs:
+              - targets: ["localhost:9090"]
+          - job_name: "shopify-app"
+            static_configs:
+              - targets: ["app:8080"]
+            metrics_path: "/metrics"
+            scrape_interval: 10s
+            scrape_timeout: 5s' > /tmp/prometheus.yml && 
+        /bin/prometheus --config.file=/tmp/prometheus.yml --storage.tsdb.path=/prometheus --web.enable-lifecycle
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - monitoring-network
 
