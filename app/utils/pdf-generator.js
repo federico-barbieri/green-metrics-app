@@ -19,7 +19,7 @@ export async function generateSustainabilityReportPDF(reportData) {
       // Header
       doc.fontSize(24)
          .fillColor('#00A86B')
-         .text('🌱 Sustainability Report', { align: 'center' });
+         .text('Sustainability Report', { align: 'center' });
       
       doc.moveDown(0.5);
       doc.fontSize(16)
@@ -100,7 +100,7 @@ export async function generateSustainabilityReportPDF(reportData) {
       // Recommendations
       doc.fontSize(16)
          .fillColor('black')
-         .text('🎯 Recommendations');
+         .text('Recommendations');
       
       doc.moveDown(0.5);
       
@@ -144,35 +144,35 @@ function generateRecommendations(metrics) {
   
   if (metrics.sustainableMaterialsPercent < 50) {
     recommendations.push({
-      title: '🌱 Increase Sustainable Materials',
+      title: 'Increase Sustainable Materials',
       description: `Current: ${metrics.sustainableMaterialsPercent.toFixed(1)}%. Target: 60%+. Partner with suppliers offering recycled or organic materials.`
     });
   }
   
   if (metrics.localProductsPercent < 30) {
     recommendations.push({
-      title: '🏘️ Source More Locally',
+      title: 'Source More Locally',
       description: `Current: ${metrics.localProductsPercent.toFixed(1)}%. Target: 40%+. Identify local manufacturers to reduce carbon footprint.`
     });
   }
   
   if (metrics.avgPackagingRatio > 1.5) {
     recommendations.push({
-      title: '📦 Optimize Packaging',
+      title: 'Optimize Packaging',
       description: `Current ratio: ${metrics.avgPackagingRatio.toFixed(2)}:1. Target: <1.2:1. Use minimal, lightweight packaging.`
     });
   }
   
   if (metrics.avgDeliveryDistanceKm > 50) {
     recommendations.push({
-      title: '🚚 Reduce Delivery Distance',
+      title: 'Reduce Delivery Distance',
       description: `Current: ${metrics.avgDeliveryDistanceKm.toFixed(1)} km. Target: <40 km. Consider regional fulfillment centers.`
     });
   }
   
   if (recommendations.length === 0) {
     recommendations.push({
-      title: '🎉 Excellent Performance!',
+      title: 'Excellent Performance!',
       description: 'Your store is performing well across all sustainability metrics. Keep up the great work!'
     });
   }

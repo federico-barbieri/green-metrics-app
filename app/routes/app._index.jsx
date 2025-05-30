@@ -180,6 +180,26 @@ export const loader = async ({ request }) => {
     hasSustainableMaterials &&
     hasPackagingWeight &&
     hasProductWeight;
+  
+  
+    if (store && store._count?.products > 0) {
+      console.log("Ensuring Prometheus metrics are up to date...");
+      
+      // Get all products from DB
+      const products = await prisma.product.findMany({
+        where: { storeId: store.id }
+      });
+      
+      // Update Prometheus metrics for each product
+      for (const product of products) {
+        await updateProductMetrics(product);
+      }
+      
+      // Update store-level metrics
+      await updateStoreAggregatedMetrics(store.id);
+      
+      console.log("Prometheus metrics refreshed from database");
+    }
 
   return json({
     store: {
