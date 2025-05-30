@@ -736,7 +736,7 @@ export default function Index() {
               <BlockStack gap="500">
                 <BlockStack gap="200">
                   <Text as="h2" variant="headingMd">
-                    Welcome to the Green Metrics app by Federico Barbieri
+                    Welcome to the Green Metrics app by Federico Pedro Barbieri
                   </Text>
                   <Text variant="bodyMd" as="p">
                     Track sustainability metrics for your products and improve
