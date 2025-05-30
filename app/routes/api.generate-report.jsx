@@ -28,9 +28,29 @@ export async function action({ request }) {
     // Use the actual store ID from your database
     const storeId = store.id;
     console.log('Using store ID for Prometheus:', storeId);
-    
+
     // Fetch sustainability metrics from Prometheus
-    const metrics = await getSustainabilityMetrics(storeId);
+    let metrics = await getSustainabilityMetrics(storeId);
+
+    // If we get empty data, wait for Prometheus to scrape fresh metrics
+    if (metrics.current.totalProducts === 0) {
+      console.log('⏳ No metrics found, waiting for Prometheus to scrape...');
+      await new Promise(resolve => setTimeout(resolve, 20000)); // Wait 20 seconds
+      
+      // Try again
+      console.log('🔄 Retrying metrics fetch after waiting...');
+      const retryMetrics = await getSustainabilityMetrics(storeId);
+      
+      if (retryMetrics.current.totalProducts > 0) {
+        console.log('✅ Fresh metrics found after waiting');
+        metrics = retryMetrics; // ✅ Use the retry metrics
+      } else {
+        console.log('❌ Still no data after waiting - there may be a deeper issue');
+        // Continue with original metrics (will show zeros)
+      }
+    }
+
+    // Calculate sustainability score using the final metrics
     const sustainabilityScore = calculateSustainabilityScore(metrics);
     
     console.log('Final metrics being sent to PDF:', {
