@@ -1,113 +1,130 @@
 // app/utils/pdf-generator.js
-import jsPDF from 'jspdf';
+import PDFDocument from 'pdfkit';
 import { format } from 'date-fns';
 
 export async function generateSustainabilityReportPDF(reportData) {
   try {
-    const doc = new jsPDF();
     const { storeName, metrics, sustainabilityScore, generatedAt } = reportData;
     const { current } = metrics;
     
-    // Set font
-    doc.setFont('helvetica');
-    
-    // Header
-    doc.setFontSize(24);
-    doc.setTextColor(0, 168, 107); // Green color
-    doc.text('🌱 Sustainability Report', 105, 30, { align: 'center' });
-    
-    doc.setFontSize(16);
-    doc.setTextColor(0, 0, 0);
-    doc.text(storeName, 105, 45, { align: 'center' });
-    
-    doc.setFontSize(12);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Generated on ${format(generatedAt, 'PPP')}`, 105, 55, { align: 'center' });
-    
-    // Sustainability Score Box
-    doc.setFillColor(0, 168, 107);
-    doc.rect(20, 70, 170, 30, 'F');
-    
-    doc.setFontSize(32);
-    doc.setTextColor(255, 255, 255);
-    doc.text(sustainabilityScore.toString(), 105, 90, { align: 'center' });
-    
-    doc.setFontSize(14);
-    doc.text('Overall Sustainability Score', 105, 95, { align: 'center' });
-    
-    // Executive Summary
-    doc.setFontSize(16);
-    doc.setTextColor(0, 0, 0);
-    doc.text('Executive Summary', 20, 120);
-    
-    doc.setFontSize(11);
-    doc.setTextColor(60, 60, 60);
-    const summaryText = `Your store achieved a sustainability score of ${sustainabilityScore}/100, indicating ${getScoreDescription(sustainabilityScore)} performance in sustainable practices.`;
-    doc.text(doc.splitTextToSize(summaryText, 170), 20, 130);
-    
-    // Key Metrics
-    doc.setFontSize(16);
-    doc.setTextColor(0, 0, 0);
-    doc.text('Key Metrics', 20, 160);
-    
-    // Metrics in a grid layout
-    const metrics_data = [
-      { label: 'Sustainable Materials', value: `${current.sustainableMaterialsPercent.toFixed(1)}%`, x: 20, y: 175 },
-      { label: 'Local Products', value: `${current.localProductsPercent.toFixed(1)}%`, x: 110, y: 175 },
-      { label: 'Packaging Ratio', value: `${current.avgPackagingRatio.toFixed(2)}:1`, x: 20, y: 200 },
-      { label: 'Avg Delivery Distance', value: `${current.avgDeliveryDistanceKm.toFixed(1)} km`, x: 110, y: 200 }
-    ];
-    
-    metrics_data.forEach(metric => {
-      // Metric box
-      doc.setFillColor(248, 249, 250);
-      doc.rect(metric.x, metric.y, 80, 20, 'F');
-      doc.setDrawColor(0, 168, 107);
-      doc.rect(metric.x, metric.y, 80, 20);
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument();
+      const chunks = [];
       
-      // Value
-      doc.setFontSize(14);
-      doc.setTextColor(0, 168, 107);
-      doc.text(metric.value, metric.x + 40, metric.y + 8, { align: 'center' });
+      // Collect the PDF data
+      doc.on('data', chunk => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
       
-      // Label
-      doc.setFontSize(9);
-      doc.setTextColor(100, 100, 100);
-      doc.text(metric.label, metric.x + 40, metric.y + 16, { align: 'center' });
+      // Header
+      doc.fontSize(24)
+         .fillColor('#00A86B')
+         .text('🌱 Sustainability Report', { align: 'center' });
+      
+      doc.moveDown(0.5);
+      doc.fontSize(16)
+         .fillColor('black')
+         .text(storeName, { align: 'center' });
+      
+      doc.fontSize(12)
+         .fillColor('gray')
+         .text(`Generated on ${format(generatedAt, 'PPP')}`, { align: 'center' });
+      
+      doc.moveDown(1);
+      
+      // Sustainability Score Box
+      doc.rect(50, doc.y, 500, 80)
+         .fillAndStroke('#00A86B', '#00A86B');
+      
+      doc.fontSize(36)
+         .fillColor('white')
+         .text(sustainabilityScore.toString(), 50, doc.y - 65, { 
+           width: 500, 
+           align: 'center' 
+         });
+      
+      doc.fontSize(14)
+         .text('Overall Sustainability Score', 50, doc.y - 30, { 
+           width: 500, 
+           align: 'center' 
+         });
+      
+      doc.moveDown(2);
+      
+      // Executive Summary
+      doc.fontSize(16)
+         .fillColor('black')
+         .text('Executive Summary');
+      
+      doc.moveDown(0.5);
+      doc.fontSize(11)
+         .fillColor('#3C3C3C')
+         .text(`Your store achieved a sustainability score of ${sustainabilityScore}/100, indicating ${getScoreDescription(sustainabilityScore)} performance in sustainable practices.`);
+      
+      doc.moveDown(1);
+      
+      // Key Metrics
+      doc.fontSize(16)
+         .fillColor('black')
+         .text('Key Metrics');
+      
+      doc.moveDown(0.5);
+      
+      const metricsData = [
+        { label: 'Sustainable Materials', value: `${current.sustainableMaterialsPercent.toFixed(1)}%` },
+        { label: 'Local Products', value: `${current.localProductsPercent.toFixed(1)}%` },
+        { label: 'Packaging Ratio', value: `${current.avgPackagingRatio.toFixed(2)}:1` },
+        { label: 'Average Delivery Distance', value: `${current.avgDeliveryDistanceKm.toFixed(1)} km` }
+      ];
+      
+      metricsData.forEach((metric, index) => {
+        const x = 50 + (index % 2) * 250;
+        const y = doc.y + Math.floor(index / 2) * 60;
+        
+        // Metric box
+        doc.rect(x, y, 200, 50)
+           .stroke('#00A86B');
+        
+        doc.fontSize(18)
+           .fillColor('#00A86B')
+           .text(metric.value, x + 10, y + 10, { width: 180, align: 'center' });
+        
+        doc.fontSize(10)
+           .fillColor('gray')
+           .text(metric.label, x + 10, y + 35, { width: 180, align: 'center' });
+      });
+      
+      doc.y += 120;
+      doc.moveDown(1);
+      
+      // Recommendations
+      doc.fontSize(16)
+         .fillColor('black')
+         .text('🎯 Recommendations');
+      
+      doc.moveDown(0.5);
+      
+      const recommendations = generateRecommendations(current);
+      
+      recommendations.forEach((rec, index) => {
+        doc.fontSize(12)
+           .fillColor('black')
+           .text(`${index + 1}. ${rec.title}`);
+        
+        doc.fontSize(10)
+           .fillColor('#3C3C3C')
+           .text(rec.description, { indent: 20 });
+        
+        doc.moveDown(0.5);
+      });
+      
+      // Footer
+      doc.fontSize(8)
+         .fillColor('lightgray')
+         .text('Generated by Green Metrics App', { align: 'center' });
+      
+      doc.end();
     });
-    
-    // Recommendations
-    doc.setFontSize(16);
-    doc.setTextColor(0, 0, 0);
-    doc.text('🎯 Recommendations', 20, 240);
-    
-    const recommendations = generateRecommendations(current);
-    let yPos = 250;
-    
-    recommendations.forEach((rec, index) => {
-      if (yPos > 270) {
-        doc.addPage();
-        yPos = 30;
-      }
-      
-      doc.setFontSize(12);
-      doc.setTextColor(0, 0, 0);
-      doc.text(`${index + 1}. ${rec.title}`, 20, yPos);
-      
-      doc.setFontSize(10);
-      doc.setTextColor(60, 60, 60);
-      const descText = doc.splitTextToSize(rec.description, 170);
-      doc.text(descText, 25, yPos + 5);
-      
-      yPos += 15 + (descText.length * 3);
-    });
-    
-    // Footer
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text('Generated by Green Metrics App', 105, 285, { align: 'center' });
-    
-    return Buffer.from(doc.output('arraybuffer'));
     
   } catch (error) {
     console.error('Error generating PDF:', error);
@@ -128,28 +145,28 @@ function generateRecommendations(metrics) {
   if (metrics.sustainableMaterialsPercent < 50) {
     recommendations.push({
       title: '🌱 Increase Sustainable Materials',
-      description: `Current: ${metrics.sustainableMaterialsPercent.toFixed(1)}%. Target: 60%+. Partner with suppliers offering recycled or organic materials to boost your sustainability score.`
+      description: `Current: ${metrics.sustainableMaterialsPercent.toFixed(1)}%. Target: 60%+. Partner with suppliers offering recycled or organic materials.`
     });
   }
   
   if (metrics.localProductsPercent < 30) {
     recommendations.push({
       title: '🏘️ Source More Locally',
-      description: `Current: ${metrics.localProductsPercent.toFixed(1)}%. Target: 40%+. Identify local manufacturers to reduce carbon footprint and support local economy.`
+      description: `Current: ${metrics.localProductsPercent.toFixed(1)}%. Target: 40%+. Identify local manufacturers to reduce carbon footprint.`
     });
   }
   
   if (metrics.avgPackagingRatio > 1.5) {
     recommendations.push({
       title: '📦 Optimize Packaging',
-      description: `Current ratio: ${metrics.avgPackagingRatio.toFixed(2)}:1. Target: <1.2:1. Use minimal, lightweight packaging and consider compostable materials.`
+      description: `Current ratio: ${metrics.avgPackagingRatio.toFixed(2)}:1. Target: <1.2:1. Use minimal, lightweight packaging.`
     });
   }
   
   if (metrics.avgDeliveryDistanceKm > 50) {
     recommendations.push({
       title: '🚚 Reduce Delivery Distance',
-      description: `Current: ${metrics.avgDeliveryDistanceKm.toFixed(1)} km. Target: <40 km. Consider regional fulfillment centers or local pickup options.`
+      description: `Current: ${metrics.avgDeliveryDistanceKm.toFixed(1)} km. Target: <40 km. Consider regional fulfillment centers.`
     });
   }
   
