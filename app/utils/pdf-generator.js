@@ -46,7 +46,7 @@ export async function generateSustainabilityReportPDF(reportData) {
       doc.fontSize(28)
          .fillColor('white')
          .font('Helvetica-Bold')
-         .text('🌱 SUSTAINABILITY REPORT', 50, 30, { 
+         .text('SUSTAINABILITY REPORT', 50, 30, { 
            width: pageWidth, 
            align: 'center' 
          });
@@ -112,7 +112,7 @@ export async function generateSustainabilityReportPDF(reportData) {
       doc.fontSize(16)
          .fillColor(colors.text)
          .font('Helvetica-Bold')
-         .text('📊 Key Performance Metrics');
+         .text('Key Performance Metrics');
       
       doc.y += 20;
       
@@ -120,28 +120,24 @@ export async function generateSustainabilityReportPDF(reportData) {
         { 
           label: 'Sustainable Materials', 
           value: `${current.sustainableMaterialsPercent.toFixed(1)}%`,
-          icon: '🌿',
           target: '70%+',
           status: current.sustainableMaterialsPercent >= 70 ? 'good' : current.sustainableMaterialsPercent >= 40 ? 'warning' : 'poor'
         },
         { 
           label: 'Local Products', 
           value: `${current.localProductsPercent.toFixed(1)}%`,
-          icon: '📍',
           target: '40%+',
           status: current.localProductsPercent >= 40 ? 'good' : current.localProductsPercent >= 20 ? 'warning' : 'poor'
         },
         { 
           label: 'Packaging Efficiency', 
           value: `${current.avgPackagingRatio.toFixed(2)}:1`,
-          icon: '📦',
           target: '<1.2:1',
           status: current.avgPackagingRatio <= 1.2 ? 'good' : current.avgPackagingRatio <= 1.5 ? 'warning' : 'poor'
         },
         { 
           label: 'Delivery Distance', 
           value: `${current.avgDeliveryDistanceKm.toFixed(1)} km`,
-          icon: '🚚',
           target: '<40 km',
           status: current.avgDeliveryDistanceKm <= 40 ? 'good' : current.avgDeliveryDistanceKm <= 60 ? 'warning' : 'poor'
         }
@@ -149,10 +145,11 @@ export async function generateSustainabilityReportPDF(reportData) {
       
       const cardWidth = (pageWidth - 30) / 2;
       const cardHeight = 80;
+      const startY = doc.y;
       
       metricsData.forEach((metric, index) => {
         const x = 50 + (index % 2) * (cardWidth + 15);
-        const y = doc.y + Math.floor(index / 2) * (cardHeight + 15);
+        const y = startY + Math.floor(index / 2) * (cardHeight + 15);
         
         // Card background
         doc.roundedRect(x, y, cardWidth, cardHeight, 6)
@@ -167,36 +164,31 @@ export async function generateSustainabilityReportPDF(reportData) {
         doc.rect(x, y, cardWidth, 4)
            .fill(statusColor);
         
-        // Icon and value
-        doc.fontSize(16)
-           .fillColor(colors.text)
-           .font('Helvetica')
-           .text(metric.icon, x + 15, y + 15);
-        
+        // Value
         doc.fontSize(20)
            .fillColor(statusColor)
            .font('Helvetica-Bold')
-           .text(metric.value, x + 45, y + 12);
+           .text(metric.value, x + 15, y + 15);
         
         // Label and target
         doc.fontSize(11)
            .fillColor(colors.text)
            .font('Helvetica-Bold')
-           .text(metric.label, x + 15, y + 40);
+           .text(metric.label, x + 15, y + 45);
         
         doc.fontSize(9)
            .fillColor(colors.darkGray)
            .font('Helvetica')
-           .text(`Target: ${metric.target}`, x + 15, y + 55);
+           .text(`Target: ${metric.target}`, x + 15, y + 60);
       });
       
-      doc.y += Math.ceil(metricsData.length / 2) * (cardHeight + 15) + 20;
+      doc.y = startY + Math.ceil(metricsData.length / 2) * (cardHeight + 15) + 30;
       
       // Recommendations Section
       doc.fontSize(16)
          .fillColor(colors.text)
          .font('Helvetica-Bold')
-         .text('💡 Recommendations for Improvement');
+         .text('Recommendations for Improvement');
       
       doc.y += 15;
       
@@ -204,9 +196,16 @@ export async function generateSustainabilityReportPDF(reportData) {
       
       recommendations.forEach((rec, index) => {
         const recY = doc.y;
+        const recHeight = 60;
+        
+        // Check if we need a new page
+        if (recY + recHeight > doc.page.height - 100) {
+          doc.addPage();
+          doc.y = 50;
+        }
         
         // Recommendation card
-        doc.roundedRect(50, recY, pageWidth, 60, 6)
+        doc.roundedRect(50, doc.y, pageWidth, recHeight, 6)
            .fill(index % 2 === 0 ? colors.lightGray : 'white')
            .stroke(colors.mediumGray)
            .lineWidth(0.5);
@@ -215,30 +214,29 @@ export async function generateSustainabilityReportPDF(reportData) {
         const priorityColor = rec.priority === 'high' ? '#F44336' : 
                              rec.priority === 'medium' ? '#FF9800' : colors.secondary;
         
-        doc.circle(70, recY + 20, 6)
+        doc.circle(70, doc.y + 20, 6)
            .fill(priorityColor);
         
         // Recommendation content
         doc.fontSize(12)
            .fillColor(colors.text)
            .font('Helvetica-Bold')
-           .text(rec.title, 90, recY + 15, { width: pageWidth - 60 });
+           .text(rec.title, 90, doc.y + 15, { width: pageWidth - 60 });
         
         doc.fontSize(10)
            .fillColor(colors.darkGray)
            .font('Helvetica')
-           .text(rec.description, 90, recY + 32, { width: pageWidth - 60 });
+           .text(rec.description, 90, doc.y + 32, { width: pageWidth - 60 });
         
-        doc.y = recY + 75;
+        doc.y += recHeight + 10;
       });
       
-      // Add new page if needed for footer
-      if (doc.y > doc.page.height - 100) {
-        doc.addPage();
-      }
-      
-      // Footer
+      // Footer - always on the last page
       const footerY = doc.page.height - 80;
+      
+      // Move to bottom of current page
+      doc.y = footerY - 30;
+      
       doc.rect(0, footerY, doc.page.width, 80)
          .fill(colors.primary);
       
@@ -312,7 +310,7 @@ function generateRecommendations(metrics) {
   }
   
   // Always add improvement suggestions
-  if (metrics.sustainableMaterialsPercent >= 70) {
+  if (metrics.sustainableMaterialsPercent >= 70 && recommendations.length === 0) {
     recommendations.push({
       title: 'Maintain Sustainable Materials Excellence',
       description: 'Continue working with current sustainable suppliers and explore innovative eco-friendly materials.',
@@ -322,7 +320,7 @@ function generateRecommendations(metrics) {
   
   if (recommendations.length === 0) {
     recommendations.push({
-      title: 'Outstanding Sustainability Performance!',
+      title: 'Outstanding Sustainability Performance',
       description: 'Your store excels across all sustainability metrics. Consider sharing your best practices with other merchants.',
       priority: 'low'
     });
