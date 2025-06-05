@@ -1,14 +1,10 @@
 //app/components/PackagingWeightMetafieldEditor.jsx
 import { useState, useEffect } from "react";
 import {
-  InlineStack,
   Button,
   Spinner,
   Toast,
   TextField,
-  Text,
-  Box,
-  BlockStack,
 } from "@shopify/polaris";
 
 export default function PackagingWeightMetafieldEditor({
@@ -49,12 +45,6 @@ export default function PackagingWeightMetafieldEditor({
       setPackagingWeight(packaging_weight);
     }
   }, [product_weight, packaging_weight]);
-
-  // Calculate derived values
-  const totalWeightInGrams =
-    ((productWeight || 0) + (packagingWeight || 0)) * 1000;
-  const pwRatio =
-    productWeight > 0 ? (packagingWeight / productWeight).toFixed(2) : 0;
 
   // Validation function for the UI (separate from server validation)
   const validateWeight = (weight) => {

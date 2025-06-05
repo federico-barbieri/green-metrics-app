@@ -1,7 +1,6 @@
 // app/routes/app.deliverydistance.jsx - Bento Grid Layout
 import {
   Card,
-  Layout,
   Page,
   Text,
   ResourceList,
@@ -10,7 +9,6 @@ import {
   Banner,
   Button,
   Box,
-  Grid,
   BlockStack,
   InlineStack,
   Divider,
@@ -317,7 +315,6 @@ export default function DeliveryDistance() {
     avgDeliveryDistance,
     orderDistances,
     topZips,
-    ordersCount,
     refreshed,
     error,
   } = useLoaderData();
@@ -482,42 +479,6 @@ export default function DeliveryDistance() {
           <Text color="subdued">No order data available</Text>
         </Box>
       )}
-    </Card>
-  );
-
-  const renderStatsCard = () => (
-    <Card sectioned>
-      <BlockStack gap="300">
-        <Text variant="headingMd">Quick Stats</Text>
-        <BlockStack gap="200">
-          <InlineStack justify="space-between">
-            <Text variant="bodyMd">Total Orders</Text>
-            <Text variant="bodyMd">{ordersCount}</Text>
-          </InlineStack>
-          <InlineStack justify="space-between">
-            <Text variant="bodyMd">With Distance</Text>
-            <Text variant="bodyMd">{orderDistances?.length || 0}</Text>
-          </InlineStack>
-          <InlineStack justify="space-between">
-            <Text variant="bodyMd">Hotspots</Text>
-            <Text variant="bodyMd">{topZips?.length || 0}</Text>
-          </InlineStack>
-        </BlockStack>
-      </BlockStack>
-    </Card>
-  );
-
-  const renderDebugCard = () => (
-    <Card sectioned>
-      <BlockStack gap="200">
-        <Text variant="headingMd">Debug Info</Text>
-        <Text variant="bodyMd" color="subdued">
-          Database: {ordersCount} orders
-        </Text>
-        <Text variant="bodyMd" color="subdued">
-          Calculated: {orderDistances?.length || 0} distances
-        </Text>
-      </BlockStack>
     </Card>
   );
 

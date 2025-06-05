@@ -1,7 +1,6 @@
 // app/routes/app.sustainablematerials.jsx
 import {
   Card,
-  Layout,
   Page,
   Text,
   ResourceList,
@@ -118,9 +117,6 @@ export default function SustainableProducts() {
   const moderateProducts = products.filter(p => p.badgeStatus === "warning").length;
   const lowProducts = products.filter(p => p.badgeStatus === "critical").length;
   
-  const avgSustainablePercent = totalProducts > 0 
-    ? (products.reduce((sum, p) => sum + parseFloat(p.sustainablePercent), 0) / totalProducts).toFixed(0)
-    : 0;
 
   // Bento Grid CSS
   const bentoGridStyles = {

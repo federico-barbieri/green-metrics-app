@@ -11,8 +11,6 @@ import {
   BlockStack,
   Box,
   List,
-  Link,
-  InlineStack,
   Banner,
 } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
@@ -639,11 +637,6 @@ export default function Index() {
   const importFetcher = useFetcher();
   const metafieldFetcher = useFetcher();
   const shopify = useAppBridge();
-
-  const isLoading =
-    ["loading", "submitting"].includes(fetcher.state) &&
-    fetcher.formMethod === "POST" &&
-    fetcher.submission?.formData?.get("action") === "generate_product";
 
   const isImporting =
     ["loading", "submitting"].includes(importFetcher.state) &&
