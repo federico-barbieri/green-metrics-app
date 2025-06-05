@@ -128,7 +128,6 @@ describe('Delivery Distance Loader', () => {
     expect(result.orderDistances).toHaveLength(3)
     expect(result.topZips).toEqual([
       { zip: '2100', count: 2 },
-      { zip: '2200', count: 1 }
     ])
     expect(result.ordersCount).toBe(3)
     expect(result.refreshed).toBe(false)

@@ -13,12 +13,10 @@ const prisma = new PrismaClient();
 // and/or the product_weight metafield
 // It returns a JSON response indicating success or failure
 export const action = async ({ request }) => {
-  console.log("Action started");
   try {
     const { admin, session } = await authenticate.admin(request);
     const body = await request.json();
 
-    console.log("Received update request:", body);
     const { productId, product_weight, packaging_weight } = body;
 
     const formatAndClamp = (val) => {
@@ -50,11 +48,6 @@ export const action = async ({ request }) => {
         { status: 400 },
       );
     }
-
-    console.log("Formatted weights:", {
-      formattedProductWeight,
-      formattedPackagingWeight,
-    });
 
     // 1. Update metafields in Shopify
     const mutation = `
@@ -101,7 +94,6 @@ export const action = async ({ request }) => {
 
     if (jsonRes.data?.productUpdate?.userErrors?.length > 0) {
       const errors = jsonRes.data.productUpdate.userErrors;
-      console.log("GraphQL errors:", errors);
       return json(
         {
           success: false,
@@ -112,17 +104,6 @@ export const action = async ({ request }) => {
       );
     }
 
-    // Log the updated metafields to verify they were correctly set
-    if (jsonRes.data?.productUpdate?.product?.metafields) {
-      console.log(
-        "Updated product metafields:",
-        jsonRes.data.productUpdate.product.metafields.edges.map((e) => ({
-          namespace: e.node.namespace,
-          key: e.node.key,
-          value: e.node.value,
-        })),
-      );
-    }
 
     // 2. Also update the local database
     // Extract the numeric ID from the Shopify GID
@@ -144,7 +125,7 @@ export const action = async ({ request }) => {
       });
     }
 
-    // Find and update the product in our database
+    // Find and update the product in the database
     const product = await prisma.product.findFirst({
       where: {
         shopifyProductId: shopifyProductId,
@@ -175,13 +156,9 @@ export const action = async ({ request }) => {
         },
       });
 
-      console.log("Product updated in database:", updatedProduct);
-
       // Update metrics in Prometheus
       await updateProductMetrics(updatedProduct);
-      console.log("Metrics updated for product:", shopifyProductId);
     } else {
-      console.log(`Product not found in database: ${shopifyProductId}`);
       return json({
         success: true,
         shopifyUpdated: true,
@@ -192,7 +169,6 @@ export const action = async ({ request }) => {
       });
     }
 
-    console.log("Metafields and database updated successfully");
     return json({
       success: true,
       shopifyUpdated: true,
@@ -201,7 +177,6 @@ export const action = async ({ request }) => {
       packaging_weight: formattedPackagingWeight,
     });
   } catch (error) {
-    console.error("Error in action:", error);
     return json({ success: false, error: error.message }, { status: 500 });
   }
 };

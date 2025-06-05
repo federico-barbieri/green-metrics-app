@@ -97,9 +97,9 @@ export default function SustainableMaterialsMetafieldEditor({
 
   return (
     <>
-      <InlineStack gap="1000" wrap>
+      <InlineStack gap="1000" nowrap>
         <TextField
-          label="Edit % of Sustainable materials in product"
+          label="Edit % of sustainable materials"
           type="number"
           value={String(sustainablePercent)}
           onChange={(v) => setSustainablePercent(parseFloat(v))}
@@ -108,9 +108,11 @@ export default function SustainableMaterialsMetafieldEditor({
           min={0}
           step={1}
         />
-        <Button onClick={handleSave} disabled={loading}>
-          {loading ? <Spinner size="small" /> : "Save"}
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', paddingTop: '1.5rem' }}>
+          <Button onClick={handleSave} disabled={loading}>
+            {loading ? <Spinner size="small" /> : "Save"}
+          </Button>
+        </div>
       </InlineStack>
 
       {toastActive && (

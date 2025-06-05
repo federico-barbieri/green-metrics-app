@@ -8,9 +8,6 @@ export async function action({ request }) {
   try {
     const { session } = await authenticate.admin(request);
     
-    // Debug: Log the session info
-    console.log('Session shop domain:', session.shop);
-    
     // Get the actual store ID from your database
     const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient();
@@ -18,45 +15,31 @@ export async function action({ request }) {
     const store = await prisma.store.findUnique({
       where: { shopifyDomain: session.shop }
     });
-    
-    console.log('Store from database:', store);
-    
+        
     if (!store) {
       throw new Error(`Store not found in database for domain: ${session.shop}`);
     }
     
-    // Use the actual store ID from your database
+    // Use the actual store ID from the database
     const storeId = store.id;
-    console.log('Using store ID for Prometheus:', storeId);
 
     // Fetch sustainability metrics from Prometheus
     let metrics = await getSustainabilityMetrics(storeId);
 
     // If we get empty data, wait for Prometheus to scrape fresh metrics
     if (metrics.current.totalProducts === 0) {
-      console.log('⏳ No metrics found, waiting for Prometheus to scrape...');
       await new Promise(resolve => setTimeout(resolve, 20000)); // Wait 20 seconds
       
       // Try again
-      console.log('🔄 Retrying metrics fetch after waiting...');
       const retryMetrics = await getSustainabilityMetrics(storeId);
       
       if (retryMetrics.current.totalProducts > 0) {
-        console.log('✅ Fresh metrics found after waiting');
-        metrics = retryMetrics; // ✅ Use the retry metrics
-      } else {
-        console.log('❌ Still no data after waiting - there may be a deeper issue');
-        // Continue with original metrics (will show zeros)
-      }
+        metrics = retryMetrics; // Use the retry metrics
+      } 
     }
 
     // Calculate sustainability score using the final metrics
     const sustainabilityScore = calculateSustainabilityScore(metrics);
-    
-    console.log('Final metrics being sent to PDF:', {
-      sustainabilityScore,
-      metrics: metrics.current
-    });
     
     // Generate PDF
     const pdfBuffer = await generateSustainabilityReportPDF({

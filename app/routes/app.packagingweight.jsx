@@ -1,12 +1,15 @@
 // app/routes/app.packagingweight.jsx
 import {
   Card,
-  Layout,
   Page,
   Text,
   ResourceList,
   ResourceItem,
   Badge,
+  BlockStack,
+  InlineStack,
+  Box,
+  Divider,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { useLoaderData } from "@remix-run/react";
@@ -112,79 +115,182 @@ export const loader = async ({ request }) => {
 export default function PackagingWeight() {
   const { products } = useLoaderData();
 
-  return (
-    <Page>
-      <TitleBar title="Packaging Weight page" />
-      <Layout>
-        <div
-          style={{
-            width: "100%",
-            padding: "1rem",
-            height: "100vh",
-            overflowY: "scroll",
-          }}
-        >
-          <Layout.Section>
-            <Text variant="headingLg" as="h1">
-              Full Product Weights
-            </Text>
-            <Text>
-              Below is a list of all products and their total weight (product +
-              packaging) in grams, along with a packaging efficiency badge based
-              on the packaging-to-product weight ratio (PWR).
-            </Text>
-          </Layout.Section>
+  // Calculate overview statistics
+  const totalProducts = products.length;
+  const excellentProducts = products.filter(p => p.pwrStatus === "success").length;
+  const acceptableProducts = products.filter(p => p.pwrStatus === "warning").length;
+  const heavyPackagingProducts = products.filter(p => p.pwrStatus === "critical").length;
+  
 
-          <Layout.Section>
-            <div style={{ width: "100%", marginBottom: "5rem" }}>
-              <Card title="Product Weight Overview" sectioned>
-                <ResourceList
-                  resourceName={{ singular: "product", plural: "products" }}
-                  items={products}
-                  renderItem={(item) => {
-                    const {
-                      id,
-                      title,
-                      combinedWeightGrams,
-                      pwrLabel,
-                      pwrStatus,
-                      pwrValue,
-                      productWeight,
-                      packagingWeight,
-                    } = item;
-                    return (
-                      <ResourceItem id={id}>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "0.3rem",
-                          }}
-                        >
-                          <Text variant="bodyMd" fontWeight="bold" as="h3">
-                            {title}{" "}
+  // Bento Grid CSS
+  const bentoGridStyles = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gridTemplateRows: '200px auto',
+    gap: '1rem',
+    gridTemplateAreas: `
+      "overview stats efficiency"
+      "productlist productlist productlist"
+    `,
+  };
+
+  const bentoItemStyles = {
+    overview: { gridArea: 'overview' },
+    stats: { gridArea: 'stats' },
+    efficiency: { gridArea: 'efficiency' },
+    products: { gridArea: 'products' },
+    productlist: { gridArea: 'productlist' },
+  };
+
+  const renderOverviewCard = () => (
+    <Card sectioned style={{ height: '200px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <BlockStack gap="400">
+        <Text variant="headingMd" alignment="center">📦 Packaging Overview</Text>
+        <Text variant="heading2xl" alignment="center">
+          {totalProducts}
+        </Text>
+        <Text variant="bodyMd" color="subdued" alignment="center">
+          Total Products Analyzed
+        </Text>
+      </BlockStack>
+    </Card>
+  );
+
+  const renderStatsCard = () => (
+    <Card sectioned style={{ height: '300px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      <BlockStack gap="300">
+        <Text variant="headingMd" alignment="center">📊 PWR Distribution</Text>
+        <BlockStack gap="200">
+          <InlineStack justify="space-between" align="center">
+            <Text variant="bodyMd">Excellent &nbsp;</Text>
+            <Badge tone="success">{excellentProducts}</Badge>
+          </InlineStack>
+          <InlineStack justify="space-between" align="center">
+            <Text variant="bodyMd">Acceptable &nbsp;</Text>
+            <Badge tone="warning">{acceptableProducts}</Badge>
+          </InlineStack>
+          <InlineStack justify="space-between" align="center">
+            <Text variant="bodyMd">Heavy Packaging &nbsp;</Text>
+            <Badge tone="critical">{heavyPackagingProducts}</Badge>
+          </InlineStack>
+        </BlockStack>
+      </BlockStack>
+    </Card>
+  );
+
+  const renderEfficiencyCard = () => {
+    const excellentPercentage = totalProducts > 0 ? Math.round((excellentProducts / totalProducts) * 100) : 0;
+    
+    return (
+      <Card sectioned style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <BlockStack gap="300">
+          <Text variant="headingMd" alignment="center">🎯 Efficiency Score</Text>
+          <Text variant="heading2xl" alignment="center">
+            {excellentPercentage}%
+          </Text>
+          <Text variant="bodyMd" color="subdued" alignment="center">
+            Products with excellent PWR
+          </Text>
+        </BlockStack>
+      </Card>
+    );
+  };
+
+
+
+  const renderProductListCard = () => (
+    <Card>
+      <Box padding="400">
+        <BlockStack gap="200">
+          <Text variant="headingMd">Product Weight Analysis</Text>
+          <Text variant="bodyMd" color="subdued">
+            Complete list of products with their total weight (product + packaging) and packaging efficiency ratings based on PWR.
+          </Text>
+        </BlockStack>
+      </Box>
+      <Divider />
+      {products && products.length > 0 ? (
+        <Box padding="0">
+          <ResourceList
+            resourceName={{ singular: "product", plural: "products" }}
+            items={products}
+            renderItem={(item) => {
+              const {
+                id,
+                title,
+                combinedWeightGrams,
+                pwrLabel,
+                pwrStatus,
+                pwrValue,
+                productWeight,
+                packagingWeight,
+              } = item;
+              return (
+                <div style={{ marginTop: '0.75rem', marginBottom: '0.75rem' }}>
+                  <ResourceItem id={id}>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '0.5rem',
+                      alignItems: 'center',
+                      padding: '0.5rem 0'
+                    }}>
+                      <div style={{ borderRight: '1px solid #e1e3e5', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', alignItems: 'start', justifyContent: 'space-between', height: '100%' }}>
+                        <BlockStack gap="200">
+                          <Text variant="bodyMd" fontWeight="bold">{title}</Text>
+                          <InlineStack gap="200">
                             <Badge tone={pwrStatus}>
                               {pwrLabel} (PWR {pwrValue})
                             </Badge>
-                          </Text>
-                          <Text variant="bodySm" as="p">
-                            Combined Weight: {combinedWeightGrams}g
-                          </Text>
-                        </div>
+                          </InlineStack>
+                        </BlockStack>
+                        <BlockStack gap="100" align="center">
+                          <Text variant="bodyMd" color="subdued">Combined Weight: {combinedWeightGrams}g </Text>
+                        </BlockStack>
+                      </div>
+                     
+                      <div style={{ textAlign: 'center' }}>
                         <PackagingWeightMetafieldEditor
                           productId={id}
                           product_weight={productWeight}
                           packaging_weight={packagingWeight}
                         />
-                      </ResourceItem>
-                    );
-                  }}
-                />
-              </Card>
-            </div>
-          </Layout.Section>
+                      </div>
+                    </div>
+                  </ResourceItem>
+                </div>
+              );
+            }}
+          />
+        </Box>
+      ) : (
+        <Box padding="400">
+          <Text color="subdued">No products available</Text>
+        </Box>
+      )}
+    </Card>
+  );
+
+  return (
+    <Page>
+      <TitleBar title="Packaging Weight Analysis" />
+      <Box padding="600">
+        <div style={bentoGridStyles}>
+          <div style={bentoItemStyles.overview}>
+            {renderOverviewCard()}
+          </div>
+          <div style={bentoItemStyles.stats}>
+            {renderStatsCard()}
+          </div>
+          <div style={bentoItemStyles.efficiency}>
+            {renderEfficiencyCard()}
+          </div>
+          
+          <div style={bentoItemStyles.productlist}>
+            {renderProductListCard()}
+          </div>
         </div>
-      </Layout>
+      </Box>
     </Page>
   );
 }

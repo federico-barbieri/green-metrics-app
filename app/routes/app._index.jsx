@@ -11,8 +11,6 @@ import {
   BlockStack,
   Box,
   List,
-  Link,
-  InlineStack,
   Banner,
 } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
@@ -69,7 +67,7 @@ function SustainabilityReportDownload() {
   };
 
   return (
-    <Card>
+    <Card gap="400">
       <BlockStack gap="400">
         <BlockStack gap="200">
           <Text as="h2" variant="headingMd" color="red">
@@ -110,7 +108,7 @@ function SustainabilityReportDownload() {
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
 
-  // Check if store exists in our database
+  // Check if store exists in the database
   let store = await prisma.store.findUnique({
     where: { shopifyDomain: session.shop },
     include: {
@@ -158,7 +156,7 @@ export const loader = async ({ request }) => {
     }),
   );
 
-  // Check if our specific metafield definitions exist
+  // Check if the specific metafield definitions exist
   const hasLocallyProduced = existingDefinitions.some(
     (def) => def.key === "locally_produced" && def.namespace === "custom",
   );
@@ -183,7 +181,6 @@ export const loader = async ({ request }) => {
   
   
     if (store && store._count?.products > 0) {
-      console.log("Ensuring Prometheus metrics are up to date...");
       
       // Get all products from DB
       const products = await prisma.product.findMany({
@@ -198,7 +195,6 @@ export const loader = async ({ request }) => {
       // Update store-level metrics
       await updateStoreAggregatedMetrics(store.id);
       
-      console.log("Prometheus metrics refreshed from database");
     }
 
   return json({
@@ -613,9 +609,7 @@ export const action = async ({ request }) => {
       }
 
       // Update store-level aggregated metrics after importing all products
-      console.log("🔄 Updating store-level aggregated metrics...");
       await updateStoreAggregatedMetrics(store.id);
-      console.log("✅ Store metrics updated successfully");
 
       return json({
         action: "import_products",
@@ -643,11 +637,6 @@ export default function Index() {
   const importFetcher = useFetcher();
   const metafieldFetcher = useFetcher();
   const shopify = useAppBridge();
-
-  const isLoading =
-    ["loading", "submitting"].includes(fetcher.state) &&
-    fetcher.formMethod === "POST" &&
-    fetcher.submission?.formData?.get("action") === "generate_product";
 
   const isImporting =
     ["loading", "submitting"].includes(importFetcher.state) &&
@@ -678,7 +667,7 @@ export default function Index() {
 
   // Trigger product import automatically if needed (after metafields are set up)
   useEffect(() => {
-    // Only import if metafields are set up (or don't need setup) and we need to import
+    // Only import if metafields are set up (or don't need setup) and import is needed
     const metafieldsReady =
       !needsMetafieldSetup ||
       (metafieldFetcher.data && metafieldFetcher.data.success);
@@ -710,10 +699,6 @@ export default function Index() {
     }
   }, [productId, importFetcher.data, metafieldFetcher.data, shopify]);
 
-  const generateProduct = () => {
-    fetcher.submit({ action: "generate_product" }, { method: "POST" });
-  };
-
   // Manual import trigger if needed
   const triggerImport = () => {
     importFetcher.submit({ action: "import_products" }, { method: "POST" });
@@ -725,14 +710,11 @@ export default function Index() {
   return (
     <Page>
       <TitleBar title="Green Metrics App">
-        <Button primary onClick={generateProduct} disabled={isLoading}>
-          Generate a product
-        </Button>
       </TitleBar>
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
-            <Card>
+            <Card sectioned>
               <BlockStack gap="500">
                 <BlockStack gap="200">
                   <Text as="h2" variant="headingMd">
@@ -808,7 +790,7 @@ export default function Index() {
                 {!isImporting &&
                   !importFetcher.data &&
                   store.productCount > 0 && (
-                    <Banner title="Products Ready" tone="success">
+                    <Banner title="Products Ready" tone="success" gap="200">
                       <p>
                         You have {store.productCount} products ready for
                         sustainability tracking.
@@ -879,60 +861,16 @@ export default function Index() {
                 </BlockStack>
               </Card>
 
-              {/* Preserved from original template */}
               <Card>
                 <BlockStack gap="200">
                   <Text as="h2" variant="headingMd">
-                    App template specs
+                    Developed by Mercive - The Shopify Agency -
                   </Text>
-                  <BlockStack gap="200">
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        Framework
-                      </Text>
-                      <Link
-                        url="https://remix.run"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        Remix
-                      </Link>
-                    </InlineStack>
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        Database
-                      </Text>
-                      <Link
-                        url="https://www.prisma.io/"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        Prisma
-                      </Link>
-                    </InlineStack>
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        Interface
-                      </Text>
-                      <span>
-                        <Link
-                          url="https://polaris.shopify.com"
-                          target="_blank"
-                          removeUnderline
-                        >
-                          Polaris
-                        </Link>
-                        {", "}
-                        <Link
-                          url="https://shopify.dev/docs/apps/tools/app-bridge"
-                          target="_blank"
-                          removeUnderline
-                        >
-                          App Bridge
-                        </Link>
-                      </span>
-                    </InlineStack>
-                  </BlockStack>
+                  <Text variant="bodyMd" as="p">
+                    Mercive is a Shopify agency focused on building sustainable
+                    and high-performance e-commerce solutions. We help brands
+                    optimize their stores for speed, sustainability, and growth.
+                  </Text>
                 </BlockStack>
               </Card>
             </BlockStack>

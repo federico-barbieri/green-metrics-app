@@ -1,7 +1,6 @@
-// app/routes/app.deliverydistance.jsx - Updated with forced recalculation
+// app/routes/app.deliverydistance.jsx - Bento Grid Layout
 import {
   Card,
-  Layout,
   Page,
   Text,
   ResourceList,
@@ -9,6 +8,10 @@ import {
   Badge,
   Banner,
   Button,
+  Box,
+  BlockStack,
+  InlineStack,
+  Divider,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { useLoaderData, useSubmit } from "@remix-run/react";
@@ -287,8 +290,9 @@ export const loader = async ({ request }) => {
       };
     });
 
-    // Get top zip codes
+    // Get top zip codes (only those with 3+ deliveries)
     const topZips = Object.entries(zipFrequency)
+      .filter(([zip, count]) => count >= 2)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
       .map(([zip, count]) => ({ zip, count }));
@@ -311,7 +315,6 @@ export default function DeliveryDistance() {
     avgDeliveryDistance,
     orderDistances,
     topZips,
-    ordersCount,
     refreshed,
     error,
   } = useLoaderData();
@@ -335,89 +338,169 @@ export default function DeliveryDistance() {
     );
   }
 
-  const renderMetric = () => (
-    <Card title="Average Delivery Distance" sectioned>
-      <Text variant="bodyMd">
-        The average distance from your warehouse to customers is:
-      </Text>
-      <Text variant="headingLg">{avgDeliveryDistance} km</Text>
-      <div style={{ marginTop: "1rem" }}>
-        <Button onClick={handleRefresh}>Refresh Data</Button>
+  // Bento Grid CSS
+  const bentoGridStyles = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gridTemplateRows: '250px auto',
+    gap: '0.5rem',
+    gridTemplateAreas: `
+      "metric hotspots refresh"
+      "orders orders orders"
+    `,
+  };
+
+  const bentoItemStyles = {
+    metric: { gridArea: 'metric' },
+    hotspots: { gridArea: 'hotspots' },
+    refresh: { gridArea: 'refresh' },
+    orders: { gridArea: 'orders' },
+  };
+
+  const renderMetricCard = () => (
+    <Card sectioned style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <BlockStack gap="500">
+        <Text variant="headingMd" color="subdued" alignment="center">Average Delivery Distance</Text>
+        <Text variant="heading2xl" alignment="center">
+          {avgDeliveryDistance} km
+        </Text>
+        <Text variant="bodyMd" color="subdued" alignment="center">
+          Distance from warehouse to customers
+        </Text>
         {refreshed && (
-          <div style={{ marginTop: "0.5rem" }}>
-            <Text variant="bodyMd" color="success">
-              Data refreshed!
-            </Text>
-          </div>
+          <Badge tone="success">Data refreshed!</Badge>
         )}
-      </div>
+      </BlockStack>
     </Card>
   );
 
-  const renderOrderList = () => (
-    <Card title="Delivery Distances per Order" sectioned>
+  const renderHotspotsCard = () => (
+    <Card sectioned>
+      <BlockStack gap="500">
+        <Text variant="headingMd" alignment="center">Delivery Hotspots</Text>
+        <Text variant="bodyMd" color="subdued" alignment="center">
+          Zip codes with 3 or more deliveries
+        </Text>
+        {topZips && topZips.length > 0 ? (
+          <BlockStack gap="200">
+            {topZips.map(({ zip, count }, index) => (
+              <InlineStack key={zip} justify="space-between" align="center">
+                <Text variant="bodyMd">{zip}</Text>
+                <Badge tone={index === 0 ? "success" : "info"}>
+                  {count} deliveries
+                </Badge>
+              </InlineStack>
+            ))}
+          </BlockStack>
+        ) : (
+          <Text color="subdued">No hotspots found</Text>
+        )}
+      </BlockStack>
+    </Card>
+  );
+
+  const renderRefreshCard = () => (
+    <Card >
+      <BlockStack gap="500" align="center">
+        <Text variant="headingMd" alignment="center">Data Control</Text>
+        <Button 
+          onClick={handleRefresh} 
+          variant="primary"
+          size="large"
+        >
+          Refresh Data
+        </Button>
+        <Text variant="bodyMd" color="subdued" alignment="center">
+          Sync latest orders from Shopify
+        </Text>
+      </BlockStack>
+    </Card>
+  );
+
+  const renderOrderListCard = () => (
+    <Card>
+      <Box padding="400">
+        <Text variant="headingMd">Recent Delivery Distances</Text>
+      </Box>
+      <Divider />
       {orderDistances && orderDistances.length > 0 ? (
-        <ResourceList
-          resourceName={{ singular: "order", plural: "orders" }}
-          items={orderDistances}
-          renderItem={(item) => {
-            const { name, distance, highlightZip } = item;
-            return (
-              <ResourceItem id={name}>
-                <Text variant="bodyMd">
-                  {name}{" "}
-                  {highlightZip && (
-                    <Badge tone="success" status="info">
-                      Recurring Zip Code
-                    </Badge>
-                  )}
-                </Text>
-                <Text variant="subdued">{distance} km</Text>
-              </ResourceItem>
-            );
-          }}
-        />
+        <Box padding="0">
+          <ResourceList
+            resourceName={{ singular: "order", plural: "orders" }}
+            items={orderDistances.slice(0, 15)} // Show more items with full width
+            renderItem={(item) => {
+              const { name, distance, zip, highlightZip } = item;
+              return (
+                <div style={{ marginTop: '0.75rem', marginBottom: '0.75rem' }}>
+                  <ResourceItem id={name}>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr 1fr',
+                      gap: '1rem',
+                      alignItems: 'center',
+                      padding: '0.5rem 0'
+                    }}>
+                      <div style={{ borderRight: '1px solid #e1e3e5', paddingRight: '1rem' }}>
+                        <BlockStack gap="100">
+                          <Text variant="bodyMd" color="subdued">Order Number</Text>
+                          <Text variant="bodyMd">{name}</Text>
+                        </BlockStack>
+                      </div>
+                      <div style={{ 
+                        borderRight: '1px solid #e1e3e5', 
+                        paddingRight: '1rem',
+                        textAlign: 'center'
+                      }}>
+                        <BlockStack gap="100" align="center">
+                          <Text variant="bodyMd" color="subdued">Distance</Text>
+                          <Text variant="headingMd">{distance} km</Text>
+                        </BlockStack>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <BlockStack gap="100" align="center">
+                          <Text variant="bodyMd" color="subdued">Zip Code</Text>
+                          <InlineStack gap="200" align="center">
+                            <Text variant="bodyMd">{zip || 'N/A'}</Text>
+                            {highlightZip && (
+                              <Badge tone="success">Hotspot</Badge>
+                            )}
+                          </InlineStack>
+                        </BlockStack>
+                      </div>
+                    </div>
+                  </ResourceItem>
+                </div>
+              );
+            }}
+          />
+        </Box>
       ) : (
-        <Text>No order data available</Text>
+        <Box padding="400">
+          <Text color="subdued">No order data available</Text>
+        </Box>
       )}
-    </Card>
-  );
-
-  const renderTopZips = () => (
-    <Card title="Top Zip Codes (Delivery Hotspots)" sectioned>
-      <Text variant="headingMd">Top Zip Codes (Delivery Hotspots)</Text>
-      {topZips && topZips.length > 0 ? (
-        topZips.map(({ zip, count }) => (
-          <Text key={zip}>
-            {zip} — {count} deliveries
-          </Text>
-        ))
-      ) : (
-        <Text>No delivery hotspots found</Text>
-      )}
-    </Card>
-  );
-
-  const renderDebugInfo = () => (
-    <Card title="Debug Information" sectioned>
-      <Text variant="bodyMd">Total orders in database: {ordersCount}</Text>
-      <Text variant="bodyMd">
-        Orders with delivery distance: {orderDistances?.length || 0}
-      </Text>
     </Card>
   );
 
   return (
     <Page title="Delivery Distance Insights">
       <TitleBar title="Delivery Distance Insights" />
-      <div style={{ marginTop: "2rem", marginBottom: "2rem", width: "50%" }}>
-        <Layout>
-          <Layout.Section>{renderMetric()}</Layout.Section>
-          <Layout.Section>{renderTopZips()}</Layout.Section>
-          <Layout.Section>{renderOrderList()}</Layout.Section>
-          <Layout.Section>{renderDebugInfo()}</Layout.Section>
-        </Layout>
-      </div>
+      <Box padding="600">
+        <div style={bentoGridStyles}>
+          <div style={bentoItemStyles.metric}>
+            {renderMetricCard()}
+          </div>
+          <div style={bentoItemStyles.hotspots}>
+            {renderHotspotsCard()}
+          </div>
+          <div style={bentoItemStyles.refresh}>
+            {renderRefreshCard()}
+          </div>
+          <div style={bentoItemStyles.orders}>
+            {renderOrderListCard()}
+          </div>
+        </div>
+      </Box>
     </Page>
   );
 }

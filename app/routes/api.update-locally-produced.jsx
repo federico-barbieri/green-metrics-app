@@ -7,7 +7,6 @@ import { updateProductMetrics } from "../utils/metrics";
 const prisma = new PrismaClient();
 
 export const action = async ({ request }) => {
-  console.log("Update locally produced started");
   try {
     const { admin, session } = await authenticate.admin(request);
     const body = await request.json();
@@ -49,10 +48,8 @@ export const action = async ({ request }) => {
 
     const res = await admin.graphql(mutation);
     const jsonRes = await res.json();
-    console.log("Shopify API response:", JSON.stringify(jsonRes, null, 2));
 
     if (jsonRes.data?.productUpdate?.userErrors?.length > 0) {
-      console.log("GraphQL errors:", jsonRes.data.productUpdate.userErrors);
       return json(
         { success: false, errors: jsonRes.data.productUpdate.userErrors },
         { status: 400 },
@@ -78,7 +75,7 @@ export const action = async ({ request }) => {
       );
     }
 
-    // Find and update the product in our database
+    // Find and update the product in the database
     const product = await prisma.product.findFirst({
       where: {
         shopifyProductId: shopifyProductId,
@@ -97,13 +94,10 @@ export const action = async ({ request }) => {
         },
       });
 
-      console.log("Product updated in database:", updatedProduct);
 
       // Update metrics in Prometheus
       await updateProductMetrics(updatedProduct);
-      console.log("Metrics updated for product:", shopifyProductId);
     } else {
-      console.log(`Product not found in database: ${shopifyProductId}`);
       return json({
         success: true,
         shopifyUpdated: true,
@@ -112,7 +106,6 @@ export const action = async ({ request }) => {
       });
     }
 
-    console.log("Locally produced updated successfully");
     return json({
       success: true,
       shopifyUpdated: true,
