@@ -44,6 +44,8 @@ jobs:
     - name: 🔒 NPM Security Audit
       run: |
         echo "Running npm audit..."
+        npm audit fix --audit-level=high
+        echo "Running security audit..."
         npm audit --audit-level=high
     
     - name: OWASP Dependency Check
