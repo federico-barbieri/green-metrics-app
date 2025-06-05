@@ -1,7 +1,6 @@
 // app/routes/app.packagingweight.jsx
 import {
   Card,
-  Layout,
   Page,
   Text,
   ResourceList,
@@ -122,9 +121,6 @@ export default function PackagingWeight() {
   const acceptableProducts = products.filter(p => p.pwrStatus === "warning").length;
   const heavyPackagingProducts = products.filter(p => p.pwrStatus === "critical").length;
   
-  const avgCombinedWeight = totalProducts > 0 
-    ? (products.reduce((sum, p) => sum + parseFloat(p.combinedWeightGrams), 0) / totalProducts).toFixed(0)
-    : 0;
 
   // Bento Grid CSS
   const bentoGridStyles = {
