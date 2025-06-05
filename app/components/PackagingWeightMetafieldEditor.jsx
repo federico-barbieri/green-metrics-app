@@ -8,6 +8,7 @@ import {
   TextField,
   Text,
   Box,
+  BlockStack,
 } from "@shopify/polaris";
 
 export default function PackagingWeightMetafieldEditor({
@@ -120,50 +121,53 @@ export default function PackagingWeightMetafieldEditor({
 
   return (
     <>
-      <InlineStack gap="1000" wrap>
-        <TextField
-          label="Product Weight (kg)"
-          type="number"
-          value={String(productWeight)}
-          onChange={(v) => {
-            const value = v === "" ? 0 : parseFloat(v);
-            setProductWeight(value);
-          }}
-          autoComplete="off"
-          max={10}
-          min={0.001}
-          step={0.001}
-          helpText="Enter weight in kg (e.g., 0.1 = 100g)"
-          error={validateWeight(productWeight)}
-        />
-        <TextField
-          label="Packaging Weight (kg)"
-          type="number"
-          value={String(packagingWeight)}
-          onChange={(v) => {
-            const value = v === "" ? 0 : parseFloat(v);
-            setPackagingWeight(value);
-          }}
-          autoComplete="off"
-          max={10}
-          min={0.001}
-          step={0.001}
-          helpText="Enter weight in kg (e.g., 0.05 = 50g)"
-          error={validateWeight(packagingWeight)}
-        />
-        <div style={{ marginTop: "24px" }}>
-          <Button onClick={handleSave} disabled={loading}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'row', 
+        gap: '0.5rem', 
+        alignItems: 'flex-end',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ minWidth: '120px', flex: '1' }}>
+          <TextField
+            label="Product Weight (kg)"
+            type="number"
+            value={String(productWeight)}
+            onChange={(v) => {
+              const value = v === "" ? 0 : parseFloat(v);
+              setProductWeight(value);
+            }}
+            autoComplete="off"
+            max={10}
+            min={0.001}
+            step={0.001}
+            helpText="0,5 = 500gr"
+            error={validateWeight(productWeight)}
+          />
+        </div>
+        <div style={{ minWidth: '120px', flex: '1' }}>
+          <TextField
+            label="Packaging Weight (kg)"
+            type="number"
+            value={String(packagingWeight)}
+            onChange={(v) => {
+              const value = v === "" ? 0 : parseFloat(v);
+              setPackagingWeight(value);
+            }}
+            autoComplete="off"
+            max={10}
+            min={0.001}
+            step={0.001}
+            helpText="0,5 = 500gr"
+            error={validateWeight(packagingWeight)}
+          />
+        </div>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <Button onClick={handleSave} disabled={loading} size="slim">
             {loading ? <Spinner size="small" /> : "Save"}
           </Button>
         </div>
-      </InlineStack>
-
-      <Box paddingBlockStart="3">
-        <Text variant="bodySm">
-          Total Weight: {totalWeightInGrams.toFixed(0)}g | Packaging-to-Product
-          Ratio: {pwRatio}
-        </Text>
-      </Box>
+      </div>
 
       {toastActive && (
         <Toast

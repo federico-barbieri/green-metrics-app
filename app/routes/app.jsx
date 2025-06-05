@@ -22,7 +22,6 @@ export default function App() {
         <Link to="/app" rel="home">
           Home
         </Link>
-        <Link to="/app/additional">Additional page</Link>
         <Link to="/app/deliverydistance">Delivery Distance</Link>
         <Link to="/app/locallyproduced">Locally Produced</Link>
         <Link to="/app/packagingweight">Packaging Weight</Link>

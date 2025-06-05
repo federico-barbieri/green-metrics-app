@@ -8,6 +8,9 @@ import {
   ResourceItem,
   Badge,
   Divider,
+  BlockStack,
+  InlineStack,
+  Box,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { useLoaderData } from "@remix-run/react";
@@ -102,79 +105,183 @@ export const loader = async ({ request }) => {
     return json({ products });
   } catch (error) {
     console.error("Loader auth failed:", error);
+    return json({ products: [] });
   }
 };
 
 export default function SustainableProducts() {
   const { products } = useLoaderData();
 
-  return (
-    <Page>
-      <TitleBar title="Sustainable Fiber Usage" />
-      <Layout>
-        <div
-          style={{
-            width: "100%",
-            padding: "1rem",
-            height: "100vh",
-            overflowY: "scroll",
-          }}
-        >
-          <Layout.Section>
-            <Text variant="headingLg" as="h1">
-              Sustainable Fiber Usage
-            </Text>
-            <Text>
-              This list shows the percentage of sustainable fibers in each
-              product. A minimum of 70% is considered sustainable.
-            </Text>
-          </Layout.Section>
+  // Calculate overview statistics
+  const totalProducts = products.length;
+  const sustainableProducts = products.filter(p => p.badgeStatus === "success").length;
+  const moderateProducts = products.filter(p => p.badgeStatus === "warning").length;
+  const lowProducts = products.filter(p => p.badgeStatus === "critical").length;
+  
+  const avgSustainablePercent = totalProducts > 0 
+    ? (products.reduce((sum, p) => sum + parseFloat(p.sustainablePercent), 0) / totalProducts).toFixed(0)
+    : 0;
 
-          <Layout.Section>
-            <div style={{ width: "100%", marginBottom: "5rem" }}>
-              <Card title="Product Sustainability Overview" sectioned>
-                <ResourceList
-                  resourceName={{ singular: "product", plural: "products" }}
-                  items={products}
-                  renderItem={(item) => {
-                    const {
-                      id,
-                      title,
-                      sustainablePercent,
-                      badgeLabel,
-                      badgeStatus,
-                    } = item;
-                    return (
-                      <ResourceItem id={id}>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "0.3rem",
-                          }}
-                        >
-                          <Text variant="bodyMd" fontWeight="bold" as="h3">
-                            {title}{" "}
-                            <Badge tone={badgeStatus}>{badgeLabel}</Badge>
-                          </Text>
-                          <Text variant="bodySm" as="p">
+  // Bento Grid CSS
+  const bentoGridStyles = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gridTemplateRows: '200px auto',
+    gap: '1rem',
+    gridTemplateAreas: `
+      "overview distribution sustainability"
+      "productlist productlist productlist"
+    `,
+  };
+
+  const bentoItemStyles = {
+    overview: { gridArea: 'overview' },
+    distribution: { gridArea: 'distribution' },
+    sustainability: { gridArea: 'sustainability' },
+    productlist: { gridArea: 'productlist' },
+  };
+
+  const renderOverviewCard = () => (
+    <Card sectioned style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <BlockStack gap="400">
+        <Text variant="headingMd" alignment="center">🌱 Materials Overview</Text>
+        <Text variant="heading2xl" alignment="center">
+          {totalProducts}
+        </Text>
+        <Text variant="bodyMd" color="subdued" alignment="center">
+          Total Products Analyzed
+        </Text>
+      </BlockStack>
+    </Card>
+  );
+
+  const renderDistributionCard = () => (
+    <Card sectioned style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      <BlockStack gap="300">
+        <Text variant="headingMd" alignment="center">📊 Sustainability Distribution</Text>
+        <BlockStack gap="200">
+          <InlineStack justify="space-between" align="center">
+            <Text variant="bodyMd">Sustainable (70%+) &nbsp;</Text>
+            <Badge tone="success">{sustainableProducts}</Badge>
+          </InlineStack>
+          <InlineStack justify="space-between" align="center">
+            <Text variant="bodyMd">Moderate (40-70%) &nbsp;</Text>
+            <Badge tone="warning">{moderateProducts}</Badge>
+          </InlineStack>
+          <InlineStack justify="space-between" align="center">
+            <Text variant="bodyMd">Low (0-40%) &nbsp;</Text>
+            <Badge tone="critical"> {lowProducts}</Badge>
+          </InlineStack>
+        </BlockStack>
+      </BlockStack>
+    </Card>
+  );
+
+  const renderSustainabilityCard = () => {
+    const sustainablePercentage = totalProducts > 0 ? Math.round((sustainableProducts / totalProducts) * 100) : 0;
+    
+    return (
+      <Card sectioned style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <BlockStack gap="300">
+          <Text variant="headingMd" alignment="center">🎯 Sustainability Score</Text>
+          <Text variant="heading2xl" alignment="center">
+            {sustainablePercentage}%
+          </Text>
+          <Text variant="bodyMd" color="subdued" alignment="center">
+            70% or higher sustainable materials
+          </Text>
+        </BlockStack>
+      </Card>
+    );
+  };
+
+  const renderProductListCard = () => (
+    <Card>
+      <Box padding="400">
+        <BlockStack gap="200">
+          <Text variant="headingMd">Sustainable Fiber Analysis</Text>
+          <Text variant="bodyMd" color="subdued">
+            Complete list of products showing sustainable fiber content. A minimum of 70% is considered sustainable.
+          </Text>
+        </BlockStack>
+      </Box>
+      <Divider />
+      {products && products.length > 0 ? (
+        <Box padding="0">
+          <ResourceList
+            resourceName={{ singular: "product", plural: "products" }}
+            items={products}
+            renderItem={(item) => {
+              const {
+                id,
+                title,
+                sustainablePercent,
+                badgeLabel,
+                badgeStatus,
+              } = item;
+              return (
+                <div style={{ marginTop: '0.75rem', marginBottom: '0.75rem' }}>
+                  <ResourceItem id={id}>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '0.5rem',
+                      alignItems: 'center',
+                      padding: '0.5rem 0'
+                    }}>
+                      <div style={{ borderRight: '1px solid #e1e3e5', paddingRight: '0.5rem' }}>
+                        <BlockStack gap="200">
+                          <Text variant="bodyMd" fontWeight="bold">{title}</Text>
+                          <InlineStack gap="200">
+                            <Badge tone={badgeStatus}>
+                              {badgeLabel}
+                            </Badge>
+                          </InlineStack>
+                          <Text variant="bodyMd" color="subdued">
                             Sustainable fiber content: {sustainablePercent}%
                           </Text>
-                        </div>
-                        <Divider borderColor="border" />
+                        </BlockStack>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
                         <SustainableMaterialsMetafieldEditor
                           productId={id}
                           initial_sustainable_materials={sustainablePercent}
                         />
-                      </ResourceItem>
-                    );
-                  }}
-                />
-              </Card>
-            </div>
-          </Layout.Section>
+                      </div>
+                    </div>
+                  </ResourceItem>
+                </div>
+              );
+            }}
+          />
+        </Box>
+      ) : (
+        <Box padding="400">
+          <Text color="subdued">No products available</Text>
+        </Box>
+      )}
+    </Card>
+  );
+
+  return (
+    <Page>
+      <TitleBar title="Sustainable Fiber Usage" />
+      <Box padding="600">
+        <div style={bentoGridStyles}>
+          <div style={bentoItemStyles.overview}>
+            {renderOverviewCard()}
+          </div>
+          <div style={bentoItemStyles.distribution}>
+            {renderDistributionCard()}
+          </div>
+          <div style={bentoItemStyles.sustainability}>
+            {renderSustainabilityCard()}
+          </div>
+          <div style={bentoItemStyles.productlist}>
+            {renderProductListCard()}
+          </div>
         </div>
-      </Layout>
+      </Box>
     </Page>
   );
 }
