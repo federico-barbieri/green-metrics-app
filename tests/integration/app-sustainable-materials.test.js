@@ -247,9 +247,9 @@ describe('Sustainable Materials Loader', () => {
     const request = new Request('http://localhost/app/sustainablematerials')
     const response = await loader({ request })
 
-    // Since the loader catches errors but doesn't return anything,
-    // response should be undefined
-    expect(response).toBeUndefined()
+    // Since the loader catches errors but still returns products array
+    const result = await response.json()
+    expect(result).toEqual({ products: [] })
   })
 
   it('should calculate badge status correctly for boundary values', async () => {

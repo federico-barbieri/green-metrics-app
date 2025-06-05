@@ -292,7 +292,7 @@ export const loader = async ({ request }) => {
 
     // Get top zip codes (only those with 3+ deliveries)
     const topZips = Object.entries(zipFrequency)
-      .filter(([zip, count]) => count >= 3)
+      .filter(([zip, count]) => count >= 2)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
       .map(([zip, count]) => ({ zip, count }));
