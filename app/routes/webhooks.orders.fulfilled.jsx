@@ -65,7 +65,7 @@ export const action = async ({ request }) => {
 
 
     // Create or update order in database
-    const updatedOrder = await prisma.order.upsert({
+    await prisma.order.upsert({
       where: {
         shopifyOrderId_storeId: {
           shopifyOrderId,
