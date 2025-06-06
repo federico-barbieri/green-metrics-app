@@ -3,7 +3,7 @@
 client_id = "db28f1fd5dc82d4805ca122e804a9168"
 name = "green-metrics-app"
 handle = "green-metrics-app"
-application_url = "https://assisted-compliance-threats-pack.trycloudflare.com"
+application_url = "https://sustainablefashionmetrics.net"
 embedded = true
 
 [build]
@@ -47,9 +47,9 @@ scopes = "read_orders,read_customers,read_products,read_locations,write_products
 
 [auth]
 redirect_urls = [
-  "https://assisted-compliance-threats-pack.trycloudflare.com/auth/callback",
-  "https://assisted-compliance-threats-pack.trycloudflare.com/auth/shopify/callback",
-  "https://assisted-compliance-threats-pack.trycloudflare.com/api/auth/callback"
+  "https://sustainablefashionmetrics.net/auth/callback",
+  "https://sustainablefashionmetrics.net/auth/shopify/callback",
+  "https://sustainablefashionmetrics.net/api/auth/callback"
 ]
 
 [pos]
