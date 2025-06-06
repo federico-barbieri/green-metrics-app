@@ -185,99 +185,97 @@ export const loader = async ({ request }) => {
   let missingProducts = [];
 
   try {
-    // Get total product count from Shopify - using correct field name
-    const shopifyCountQuery = `
-      query {
-        shop {
-          products_count
+    // Since we can't get the total count directly from shop.products_count,
+    // we'll fetch products efficiently to count and check for missing ones
+    console.log("🔍 Fetching products to check sync status...");
+    
+    let hasNextPage = true;
+    let endCursor = null;
+    let allShopifyProducts = [];
+    const maxProductsToFetch = 1000; // Reasonable limit to prevent timeouts
+
+    const shopifyProductsQuery = `
+      query GetAllProducts($cursor: String) {
+        products(first: 50, after: $cursor) {
+          edges {
+            node {
+              id
+              title
+              createdAt
+            }
+          }
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
         }
       }
     `;
 
-    const countResponse = await admin.graphql(shopifyCountQuery);
-    const countData = await countResponse.json();
-    shopifyProductCount = countData.data?.shop?.products_count || 0;
-
-    console.log(`📊 Shopify products: ${shopifyProductCount}, DB products: ${store._count?.products || 0}`);
-
-    // If counts don't match, we need to check for missing products
-    if (shopifyProductCount !== (store._count?.products || 0)) {
-      console.log("🔍 Product counts don't match, checking for missing products...");
-      
-      // Get all Shopify product IDs
-      const shopifyProductsQuery = `
-        query GetAllProducts($cursor: String) {
-          products(first: 250, after: $cursor) {
-            edges {
-              node {
-                id
-                title
-                createdAt
-              }
-            }
-            pageInfo {
-              hasNextPage
-              endCursor
-            }
-          }
-        }
-      `;
-
-      let hasNextPage = true;
-      let endCursor = null;
-      const allShopifyProducts = [];
-
-      while (hasNextPage && allShopifyProducts.length < 1000) { // Limit to prevent timeouts
-        const response = await admin.graphql(shopifyProductsQuery, {
-          variables: { cursor: endCursor },
-        });
-        const data = await response.json();
-        
-        if (data.data?.products?.edges) {
-          allShopifyProducts.push(...data.data.products.edges);
-          hasNextPage = data.data.products.pageInfo.hasNextPage;
-          endCursor = data.data.products.pageInfo.endCursor;
-        } else {
-          break;
-        }
-      }
-
-      // Get all DB product IDs
-      const dbProducts = await prisma.product.findMany({
-        where: { storeId: store.id },
-        select: { shopifyProductId: true, title: true }
+    // Fetch all products (up to limit)
+    while (hasNextPage && allShopifyProducts.length < maxProductsToFetch) {
+      const response = await admin.graphql(shopifyProductsQuery, {
+        variables: { cursor: endCursor },
       });
-
-      const dbProductIds = new Set(dbProducts.map(p => p.shopifyProductId));
-
-      // Find missing products
-      missingProducts = allShopifyProducts
-        .filter(edge => {
-          const shopifyId = edge.node.id.replace("gid://shopify/Product/", "");
-          return !dbProductIds.has(shopifyId);
-        })
-        .map(edge => ({
-          id: edge.node.id.replace("gid://shopify/Product/", ""),
-          title: edge.node.title,
-          createdAt: edge.node.createdAt
-        }));
-
-      if (missingProducts.length > 0) {
-        syncStatus = "needs_sync";
-        console.log(`🔄 Found ${missingProducts.length} missing products in DB`);
-      } else if (shopifyProductCount < (store._count?.products || 0)) {
-        // More products in DB than Shopify (products were deleted)
-        syncStatus = "needs_cleanup";
-        console.log("🧹 Some products exist in DB but not in Shopify");
+      const data = await response.json();
+      
+      if (data.data?.products?.edges) {
+        allShopifyProducts.push(...data.data.products.edges);
+        hasNextPage = data.data.products.pageInfo.hasNextPage;
+        endCursor = data.data.products.pageInfo.endCursor;
       } else {
-        syncStatus = "synced";
-        console.log("✅ Products are in sync");
+        console.error("❌ Error fetching products:", data.errors);
+        break;
       }
+    }
+
+    shopifyProductCount = allShopifyProducts.length;
+    const hasMoreProducts = hasNextPage; // True if there are more products beyond our limit
+
+    console.log(`📊 Shopify products (fetched): ${shopifyProductCount}${hasMoreProducts ? '+' : ''}, DB products: ${store._count?.products || 0}`);
+
+    // Get all DB product IDs for comparison
+    const dbProducts = await prisma.product.findMany({
+      where: { storeId: store.id },
+      select: { shopifyProductId: true, title: true }
+    });
+
+    const dbProductIds = new Set(dbProducts.map(p => p.shopifyProductId));
+
+    // Find missing products
+    missingProducts = allShopifyProducts
+      .filter(edge => {
+        const shopifyId = edge.node.id.replace("gid://shopify/Product/", "");
+        return !dbProductIds.has(shopifyId);
+      })
+      .map(edge => ({
+        id: edge.node.id.replace("gid://shopify/Product/", ""),
+        title: edge.node.title,
+        createdAt: edge.node.createdAt
+      }));
+
+    // Determine sync status
+    if (missingProducts.length > 0) {
+      syncStatus = "needs_sync";
+      console.log(`🔄 Found ${missingProducts.length} missing products in DB`);
+    } else if (shopifyProductCount < (store._count?.products || 0)) {
+      // More products in DB than Shopify (products were deleted)
+      syncStatus = "needs_cleanup";
+      console.log("🧹 Some products exist in DB but not in Shopify");
+    } else if (hasMoreProducts && shopifyProductCount >= (store._count?.products || 0)) {
+      // There might be more products in Shopify that we haven't fetched
+      syncStatus = "might_need_sync";
+      console.log("⚠️ There might be more products in Shopify beyond our fetch limit");
+    } else {
+      syncStatus = "synced";
+      console.log("✅ Products are in sync");
     }
 
   } catch (error) {
     console.error("❌ Error checking product sync:", error);
     syncStatus = "error";
+    shopifyProductCount = 0;
+    missingProducts = [];
   }
   
   // Update metrics if we have products
@@ -1098,7 +1096,7 @@ export default function Index() {
                 {syncStatus === "needs_sync" && !isSyncing && (
                   <Banner title={`${missingProductsCount} Products Need Syncing`} tone="warning">
                     <p>
-                      Your store has {shopifyProductCount} products, but only {store.productCount} are in our database. 
+                      Found {missingProductsCount} products in Shopify that need to be added to our database.
                       {missingProductsCount < 50 ? " We'll sync them automatically." : " Click below to sync manually."}
                     </p>
                     {missingProductsCount >= 50 && (
@@ -1109,11 +1107,23 @@ export default function Index() {
                   </Banner>
                 )}
 
+                {syncStatus === "might_need_sync" && !isSyncing && (
+                  <Banner title="Large Store - Manual Sync Recommended" tone="info">
+                    <p>
+                      Your store has many products. We've checked the first {shopifyProductCount} and found {missingProductsCount} that need syncing.
+                      There might be more products to sync.
+                    </p>
+                    <Button onClick={triggerSync} disabled={isSyncing}>
+                      Sync Products
+                    </Button>
+                  </Banner>
+                )}
+
                 {syncStatus === "needs_cleanup" && (
                   <Banner title="Database Cleanup Needed" tone="info">
                     <p>
                       Some products in our database may have been deleted from your Shopify store. 
-                      Database: {store.productCount}, Shopify: {shopifyProductCount}
+                      Database: {store.productCount}, Shopify: {shopifyProductCount}+
                     </p>
                   </Banner>
                 )}
