@@ -178,10 +178,116 @@ export const loader = async ({ request }) => {
     hasSustainableMaterials &&
     hasPackagingWeight &&
     hasProductWeight;
-  
-  
-    if (store && store._count?.products > 0) {
+
+  // Check for missing products by comparing Shopify vs DB
+  let syncStatus = "synced";
+  let shopifyProductCount = 0;
+  let missingProducts = [];
+
+  try {
+    // Get total product count from Shopify
+    const shopifyCountQuery = `
+      query {
+        products(first: 1) {
+          pageInfo {
+            hasNextPage
+          }
+        }
+        productCount: shop {
+          productCount
+        }
+      }
+    `;
+
+    const countResponse = await admin.graphql(shopifyCountQuery);
+    const countData = await countResponse.json();
+    shopifyProductCount = countData.data?.productCount?.productCount || 0;
+
+    console.log(`Shopify products: ${shopifyProductCount}, DB products: ${store._count?.products || 0}`);
+
+    // If counts don't match, we need to check for missing products
+    if (shopifyProductCount !== (store._count?.products || 0)) {
+      console.log("Product counts don't match, checking for missing products...");
       
+      // Get all Shopify product IDs
+      const shopifyProductsQuery = `
+        query GetAllProducts($cursor: String) {
+          products(first: 250, after: $cursor) {
+            edges {
+              node {
+                id
+                title
+                createdAt
+              }
+            }
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+          }
+        }
+      `;
+
+      let hasNextPage = true;
+      let endCursor = null;
+      const allShopifyProducts = [];
+
+      while (hasNextPage && allShopifyProducts.length < 1000) { // Limit to prevent timeouts
+        const response = await admin.graphql(shopifyProductsQuery, {
+          variables: { cursor: endCursor },
+        });
+        const data = await response.json();
+        
+        if (data.data?.products?.edges) {
+          allShopifyProducts.push(...data.data.products.edges);
+          hasNextPage = data.data.products.pageInfo.hasNextPage;
+          endCursor = data.data.products.pageInfo.endCursor;
+        } else {
+          break;
+        }
+      }
+
+      // Get all DB product IDs
+      const dbProducts = await prisma.product.findMany({
+        where: { storeId: store.id },
+        select: { shopifyProductId: true, title: true }
+      });
+
+      const dbProductIds = new Set(dbProducts.map(p => p.shopifyProductId));
+
+      // Find missing products
+      missingProducts = allShopifyProducts
+        .filter(edge => {
+          const shopifyId = edge.node.id.replace("gid://shopify/Product/", "");
+          return !dbProductIds.has(shopifyId);
+        })
+        .map(edge => ({
+          id: edge.node.id.replace("gid://shopify/Product/", ""),
+          title: edge.node.title,
+          createdAt: edge.node.createdAt
+        }));
+
+      if (missingProducts.length > 0) {
+        syncStatus = "needs_sync";
+        console.log(`🔄 Found ${missingProducts.length} missing products in DB`);
+      } else if (shopifyProductCount < (store._count?.products || 0)) {
+        // More products in DB than Shopify (products were deleted)
+        syncStatus = "needs_cleanup";
+        console.log("Some products exist in DB but not in Shopify");
+      } else {
+        syncStatus = "synced";
+        console.log("Products are in sync");
+      }
+    }
+
+  } catch (error) {
+    console.error("Error checking product sync:", error);
+    syncStatus = "error";
+  }
+  
+  // Update metrics if we have products
+  if (store && store._count?.products > 0) {
+    try {
       // Get all products from DB
       const products = await prisma.product.findMany({
         where: { storeId: store.id }
@@ -195,7 +301,10 @@ export const loader = async ({ request }) => {
       // Update store-level metrics
       await updateStoreAggregatedMetrics(store.id);
       
+    } catch (metricsError) {
+      console.error("Error updating metrics:", metricsError);
     }
+  }
 
   return json({
     store: {
@@ -206,6 +315,11 @@ export const loader = async ({ request }) => {
     },
     needsImport: store._count?.products === 0,
     needsMetafieldSetup: !allDefinitionsExist,
+    // Enhanced sync information
+    syncStatus,
+    shopifyProductCount,
+    missingProductsCount: missingProducts.length,
+    missingProducts: missingProducts.slice(0, 10), // Show first 10 for debugging
   });
 };
 
@@ -626,16 +740,250 @@ export const action = async ({ request }) => {
         error: error.message,
       });
     }
+  } else if (action === "sync_missing_products") {
+    // Sync missing products action
+    const store = await prisma.store.findUnique({
+      where: { shopifyDomain: session.shop },
+    });
+
+    if (!store) {
+      return json({
+        action: "sync_missing_products",
+        success: false,
+        error: "Store not found",
+      });
+    }
+
+    try {
+      console.log("Starting sync of missing products...");
+
+      // Get all DB product IDs for comparison
+      const dbProducts = await prisma.product.findMany({
+        where: { storeId: store.id },
+        select: { shopifyProductId: true }
+      });
+      const dbProductIds = new Set(dbProducts.map(p => p.shopifyProductId));
+
+      let hasNextPage = true;
+      let endCursor = null;
+      let syncCount = 0;
+      let totalChecked = 0;
+
+      while (hasNextPage && totalChecked < 1000) { // Prevent infinite loops
+        const response = await admin.graphql(
+          `#graphql
+          query GetProductsWithMetafields($cursor: String) {
+            products(first: 50, after: $cursor) {
+              edges {
+                node {
+                  id
+                  title
+                  metafields(first: 10, namespace: "custom") {
+                    edges {
+                      node {
+                        key
+                        value
+                        namespace
+                      }
+                    }
+                  }
+                }
+              }
+              pageInfo {
+                hasNextPage
+                endCursor
+              }
+            }
+          }
+          `,
+          {
+            variables: { cursor: endCursor },
+          },
+        );
+
+        const responseJson = await response.json();
+        const products = responseJson.data.products.edges;
+        const pageInfo = responseJson.data.products.pageInfo;
+
+        totalChecked += products.length;
+
+        // Process only missing products
+        for (const productEdge of products) {
+          const shopifyProduct = productEdge.node;
+          const shopifyProductId = shopifyProduct.id.replace(
+            "gid://shopify/Product/",
+            "",
+          );
+
+          // Skip if product already exists in DB
+          if (dbProductIds.has(shopifyProductId)) {
+            continue;
+          }
+
+          console.log(`Adding missing product: ${shopifyProduct.title}`);
+
+          // Process metafields (same logic as import_products)
+          const metafields = {};
+          if (shopifyProduct.metafields && shopifyProduct.metafields.edges) {
+            for (const metafieldEdge of shopifyProduct.metafields.edges) {
+              const metafield = metafieldEdge.node;
+              if (metafield.namespace === "custom") {
+                switch (metafield.key) {
+                  case "sustainable_materials":
+                    metafields.sustainableMaterials = parseFloat(metafield.value);
+                    break;
+                  case "locally_produced":
+                    metafields.isLocallyProduced = metafield.value.toLowerCase() === "true";
+                    break;
+                  case "packaging_weight":
+                    metafields.packagingWeight = parseFloat(metafield.value);
+                    break;
+                  case "product_weight":
+                    metafields.productWeight = parseFloat(metafield.value);
+                    break;
+                }
+              }
+            }
+          }
+
+          // Calculate packaging ratio
+          if (metafields.packagingWeight && metafields.productWeight && metafields.productWeight > 0) {
+            metafields.packagingRatio = metafields.packagingWeight / metafields.productWeight;
+          }
+
+          // Create the missing product
+          const newProduct = await prisma.product.create({
+            data: {
+              shopifyProductId: shopifyProductId,
+              title: shopifyProduct.title,
+              storeId: store.id,
+              ...metafields,
+            },
+          });
+
+          // Update Prometheus metrics
+          await updateProductMetrics(newProduct);
+          syncCount++;
+
+          // Add the new product ID to our set to avoid duplicates
+          dbProductIds.add(shopifyProductId);
+
+          // Set default metafields if missing (same logic as import_products)
+          const metafieldsToSet = [];
+
+          if (!shopifyProduct.metafields?.edges.some(edge => edge.node.key === "locally_produced")) {
+            metafieldsToSet.push({
+              key: "locally_produced",
+              namespace: "custom",
+              type: "boolean",
+              value: "false",
+            });
+          }
+
+          if (!shopifyProduct.metafields?.edges.some(edge => edge.node.key === "sustainable_materials")) {
+            metafieldsToSet.push({
+              key: "sustainable_materials",
+              namespace: "custom",
+              type: "number_decimal",
+              value: "0.0",
+            });
+          }
+
+          if (!shopifyProduct.metafields?.edges.some(edge => edge.node.key === "packaging_weight")) {
+            metafieldsToSet.push({
+              key: "packaging_weight",
+              namespace: "custom",
+              type: "number_decimal",
+              value: "0.0",
+            });
+          }
+
+          if (!shopifyProduct.metafields?.edges.some(edge => edge.node.key === "product_weight")) {
+            metafieldsToSet.push({
+              key: "product_weight",
+              namespace: "custom",
+              type: "number_decimal",
+              value: "0.0",
+            });
+          }
+
+          // Set default metafields
+          if (metafieldsToSet.length > 0) {
+            try {
+              const mutation = `
+                mutation updateProductMetafields($input: ProductInput!) {
+                  productUpdate(input: $input) {
+                    product {
+                      id
+                    }
+                    userErrors {
+                      field
+                      message
+                    }
+                  }
+                }
+              `;
+
+              await admin.graphql(mutation, {
+                variables: {
+                  input: {
+                    id: shopifyProduct.id,
+                    metafields: metafieldsToSet,
+                  },
+                },
+              });
+            } catch (err) {
+              console.error(`Error setting metafields for ${shopifyProduct.title}:`, err);
+            }
+          }
+        }
+
+        hasNextPage = pageInfo.hasNextPage;
+        endCursor = pageInfo.endCursor;
+      }
+
+      // Update store-level metrics after sync
+      await updateStoreAggregatedMetrics(store.id);
+
+      console.log(`Sync complete: ${syncCount} products added`);
+
+      return json({
+        action: "sync_missing_products",
+        success: true,
+        syncCount,
+        totalChecked,
+        message: `Successfully synced ${syncCount} missing products`,
+      });
+
+    } catch (error) {
+      console.error("Error syncing missing products:", error);
+      return json({
+        action: "sync_missing_products",
+        success: false,
+        error: error.message,
+      });
+    }
   }
 
   return null;
 };
 
 export default function Index() {
-  const { store, needsImport, needsMetafieldSetup } = useLoaderData();
+  const { 
+    store, 
+    needsImport, 
+    needsMetafieldSetup,
+    // Enhanced sync data
+    syncStatus,
+    shopifyProductCount,
+    missingProductsCount,
+    missingProducts
+  } = useLoaderData();
+  
   const fetcher = useFetcher();
   const importFetcher = useFetcher();
   const metafieldFetcher = useFetcher();
+  const syncFetcher = useFetcher();
   const shopify = useAppBridge();
 
   const isImporting =
@@ -645,6 +993,10 @@ export default function Index() {
   const isCreatingMetafields =
     ["loading", "submitting"].includes(metafieldFetcher.state) &&
     metafieldFetcher.formMethod === "POST";
+
+  const isSyncing = 
+    ["loading", "submitting"].includes(syncFetcher.state) &&
+    syncFetcher.formMethod === "POST";
 
   const productId = fetcher.data?.product?.id.replace(
     "gid://shopify/Product/",
@@ -683,6 +1035,17 @@ export default function Index() {
     metafieldFetcher.data,
   ]);
 
+  // Auto-sync missing products if detected
+  useEffect(() => {
+    const metafieldsReady = !needsMetafieldSetup || (metafieldFetcher.data && metafieldFetcher.data.success);
+    const shouldAutoSync = syncStatus === "needs_sync" && missingProductsCount > 0 && missingProductsCount < 50; // Only auto-sync if < 50 missing
+
+    if (shouldAutoSync && metafieldsReady && !isSyncing && !syncFetcher.data && !needsImport) {
+      console.log(`🔄 Auto-syncing ${missingProductsCount} missing products...`);
+      syncFetcher.submit({ action: "sync_missing_products" }, { method: "POST" });
+    }
+  }, [syncStatus, missingProductsCount, needsMetafieldSetup, isSyncing, syncFetcher, metafieldFetcher.data, needsImport]);
+
   useEffect(() => {
     if (productId) {
       shopify.toast.show("Product created");
@@ -697,11 +1060,21 @@ export default function Index() {
     if (metafieldFetcher.data?.success) {
       shopify.toast.show("Sustainability metrics initialized");
     }
-  }, [productId, importFetcher.data, metafieldFetcher.data, shopify]);
+
+    // Sync success toast
+    if (syncFetcher.data?.success) {
+      shopify.toast.show(`${syncFetcher.data.syncCount} missing products synced`);
+    }
+  }, [productId, importFetcher.data, metafieldFetcher.data, syncFetcher.data, shopify]);
 
   // Manual import trigger if needed
   const triggerImport = () => {
     importFetcher.submit({ action: "import_products" }, { method: "POST" });
+  };
+
+  // Manual sync trigger
+  const triggerSync = () => {
+    syncFetcher.submit({ action: "sync_missing_products" }, { method: "POST" });
   };
 
   // Check if store has products and setup is complete
@@ -725,6 +1098,55 @@ export default function Index() {
                     your store's environmental impact.
                   </Text>
                 </BlockStack>
+
+                {/* Product Sync Status */}
+                {syncStatus === "needs_sync" && !isSyncing && (
+                  <Banner title={`${missingProductsCount} Products Need Syncing`} tone="warning">
+                    <p>
+                      Your store has {shopifyProductCount} products, but only {store.productCount} are in our database. 
+                      {missingProductsCount < 50 ? " We'll sync them automatically." : " Click below to sync manually."}
+                    </p>
+                    {missingProductsCount >= 50 && (
+                      <Button onClick={triggerSync} disabled={isSyncing}>
+                        Sync Missing Products
+                      </Button>
+                    )}
+                  </Banner>
+                )}
+
+                {syncStatus === "needs_cleanup" && (
+                  <Banner title="Database Cleanup Needed" tone="info">
+                    <p>
+                      Some products in our database may have been deleted from your Shopify store. 
+                      Database: {store.productCount}, Shopify: {shopifyProductCount}
+                    </p>
+                  </Banner>
+                )}
+
+                {syncStatus === "synced" && store.productCount > 0 && (
+                  <Banner title="Products In Sync" tone="success">
+                    <p>All {store.productCount} products are synchronized and ready for sustainability tracking.</p>
+                  </Banner>
+                )}
+
+                {isSyncing && (
+                  <Banner title="Syncing Missing Products" tone="info">
+                    <p>We're adding missing products to the database and setting up their sustainability metrics...</p>
+                  </Banner>
+                )}
+
+                {syncFetcher.data?.success && (
+                  <Banner title="Sync Complete" tone="success">
+                    <p>{syncFetcher.data.message}</p>
+                  </Banner>
+                )}
+
+                {syncFetcher.data?.success === false && (
+                  <Banner title="Sync Failed" tone="critical">
+                    <p>Failed to sync products: {syncFetcher.data.error}</p>
+                    <Button onClick={triggerSync}>Try Again</Button>
+                  </Banner>
+                )}
 
                 {/* Metafield Setup Status */}
                 {isCreatingMetafields && (
@@ -797,6 +1219,18 @@ export default function Index() {
                       </p>
                     </Banner>
                   )}
+
+                {/* Debug info for missing products (only show in development) */}
+                {missingProducts && missingProducts.length > 0 && process.env.NODE_ENV === 'development' && (
+                  <Banner title="Debug: Missing Products" tone="info">
+                    <p>Sample missing products:</p>
+                    <List>
+                      {missingProducts.slice(0, 3).map(product => (
+                        <List.Item key={product.id}>{product.title}</List.Item>
+                      ))}
+                    </List>
+                  </Banner>
+                )}
 
                 {fetcher.data?.product && (
                   <>
