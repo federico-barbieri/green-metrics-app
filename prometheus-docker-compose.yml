@@ -1,3 +1,4 @@
+## prometheus-docker-compose.yml
 services:
   prometheus:
     image: prom/prometheus:latest
@@ -16,7 +17,7 @@ services:
               - targets: ["localhost:9090"]
           - job_name: "shopify-app"
             static_configs:
-              - targets: ["app:8080"]
+              - targets: ["cmb4lmh8f0082kz9zo5zp2uly-app:8080"]
             metrics_path: "/metrics"
             scrape_interval: 10s
             scrape_timeout: 5s

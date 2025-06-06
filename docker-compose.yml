@@ -1,3 +1,4 @@
+## docker-compose.yml for a Shopify App with Prometheus monitoring
 services:
   # Shopify App
   app:
@@ -12,11 +13,11 @@ services:
       - SCOPES=${SCOPES}
       - HOST=${HOST}
       - SHOPIFY_APP_URL=${SHOPIFY_APP_URL}
-      - PROMETHEUS_URL=http://prometheus:9090
+      - PROMETHEUS_URL=http://cmb82dpzj00aakz9zfvgmselh-prometheus:9090
     networks:
       - monitoring-network
     
 networks:
   monitoring-network:
-    driver: bridge
+    external: true
 
