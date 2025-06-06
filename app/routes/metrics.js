@@ -80,12 +80,38 @@ const storeLocalProductsGauge = new promClient.Gauge({
   registers: [register],
 });
 
+// Security function to block public access
+function checkAccess(request) {
+  const forwarded = request.headers.get('x-forwarded-for');
+  const realIP = request.headers.get('x-real-ip');
+  const userAgent = request.headers.get('user-agent') || '';
+  const host = request.headers.get('host') || '';
+  
+  // Check if this is an internal request
+  const isInternal = !forwarded && !realIP; // No proxy headers = internal Docker request
+  const isPrometheus = userAgent.includes('Prometheus') || userAgent.includes('prometheus');
+  const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
+  
+  // Allow internal requests or Prometheus specifically
+  if (!isInternal && !isPrometheus && !isLocalhost) {
+    return false;
+  }
+  
+  return true;
+}
+
 // This is our metrics endpoint that Prometheus will scrape
-export const loader = async () => {
+export const loader = async ({ request }) => {
+  // 🔒 SECURITY CHECK - Block public access
+  if (!checkAccess(request)) {
+    throw new Response('Not Found', { status: 404 });
+  }
+  
   // Return the metrics in Prometheus format
   return new Response(await register.metrics(), {
     headers: {
       "Content-Type": register.contentType,
+      "Cache-Control": "no-cache",
     },
   });
 };
