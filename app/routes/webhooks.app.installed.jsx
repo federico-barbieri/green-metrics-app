@@ -6,13 +6,11 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export const action = async ({ request }) => {
-  const { shop, session, topic } = await authenticate.webhook(request);
+  const { shop, session } = await authenticate.webhook(request);
 
-  console.log(`Received ${topic} webhook for ${shop}`);
 
   if (session) {
     try {
-      console.log(`Importing products for ${shop}`);
 
       // First, get or create the store record
       let store = await prisma.store.findUnique({
@@ -26,14 +24,12 @@ export const action = async ({ request }) => {
             name: shop.split(".")[0], // Basic name from domain
           },
         });
-        console.log(`Created store record for ${shop}`);
       }
 
       // Use Admin API to fetch products
       const { admin } = session;
       let hasNextPage = true;
       let endCursor = null;
-      let totalImported = 0;
 
       while (hasNextPage) {
         // GraphQL query to fetch products in batches
@@ -63,7 +59,6 @@ export const action = async ({ request }) => {
         const products = responseJson.data.products.edges;
         const pageInfo = responseJson.data.products.pageInfo;
 
-        console.log(`Processing batch of ${products.length} products`);
 
         // Process and save products
         for (const productEdge of products) {
@@ -90,7 +85,6 @@ export const action = async ({ request }) => {
                 storeId: store.id,
               },
             });
-            totalImported++;
           }
         }
 
@@ -98,10 +92,6 @@ export const action = async ({ request }) => {
         hasNextPage = pageInfo.hasNextPage;
         endCursor = pageInfo.endCursor;
       }
-
-      console.log(
-        `Successfully imported ${totalImported} products for store: ${shop}`,
-      );
     } catch (error) {
       console.error(`Error importing products: ${error.message}`);
       console.error(error.stack);

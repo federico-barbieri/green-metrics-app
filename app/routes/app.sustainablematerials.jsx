@@ -53,7 +53,7 @@ export const loader = async ({ request }) => {
     // Add debug log for first product
     if (jsonBody.data.products.edges.length > 0) {
       const firstProduct = jsonBody.data.products.edges[0].node;
-      console.log(
+      console.warn(
         "First product metafields:",
         firstProduct.metafields.edges.map((e) => ({
           key: e.node.key,

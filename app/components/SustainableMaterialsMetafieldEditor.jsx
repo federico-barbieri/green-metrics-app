@@ -14,7 +14,7 @@ export default function SustainableMaterialsMetafieldEditor({
 }) {
   // Log props received when component mounts
   useEffect(() => {
-    console.log(`Component mounted for ${productId} with:`, {
+    console.warn(`Component mounted for ${productId} with:`, {
       productId,
       initial_sustainable_materials,
     });
@@ -46,7 +46,6 @@ export default function SustainableMaterialsMetafieldEditor({
   const handleSave = async () => {
     setLoading(true);
     try {
-      console.log("Sustainable materials percent:", sustainablePercent);
       // Validate before saving
       if (sustainablePercent < 0 || sustainablePercent > 100) {
         console.error("Invalid sustainable materials percentage");
@@ -59,7 +58,6 @@ export default function SustainableMaterialsMetafieldEditor({
 
       // Convert percentage to decimal (0.8 for 80%)
       const decimalValue = sustainablePercent / 100;
-      console.log("Saving decimal value:", decimalValue);
 
       const res = await fetch("/api/update-sustainable-materials", {
         method: "POST",
@@ -78,7 +76,6 @@ export default function SustainableMaterialsMetafieldEditor({
         setToastMessage(data.error || "Failed to save metafield");
         setToastActive(true);
       } else {
-        console.log("Metafields updated");
         setToastError(false);
         setToastMessage("Metafield saved successfully");
         setToastActive(true);

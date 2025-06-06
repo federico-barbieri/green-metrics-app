@@ -14,7 +14,7 @@ export default function PackagingWeightMetafieldEditor({
 }) {
   // Log props received when component mounts
   useEffect(() => {
-    console.log(`Component mounted for ${productId} with:`, {
+    console.warn(`Component mounted for ${productId} with:`, {
       product_weight,
       packaging_weight,
     });
@@ -71,7 +71,6 @@ export default function PackagingWeightMetafieldEditor({
 
     setLoading(true);
     try {
-      console.log("Saving values:", { productWeight, packagingWeight });
 
       // Send the updated value to the server
       const res = await fetch("/api/update-packaging-weight", {
@@ -92,7 +91,6 @@ export default function PackagingWeightMetafieldEditor({
         setToastMessage(data.error || "Failed to save metafields");
         setToastActive(true);
       } else {
-        console.log("Metafield updated successfully:", data);
         setToastError(false);
         setToastMessage("Metafields saved successfully");
         setToastActive(true);

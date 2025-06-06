@@ -74,11 +74,7 @@ export const loader = async ({ request }) => {
       warehouseLng =
         jsonLocation?.data?.locations?.edges?.[0]?.node?.address?.longitude;
 
-      console.log(
-        "Warehouse Location Coordinates:",
-        warehouseLat,
-        warehouseLng,
-      );
+     
 
       // Save the warehouse coordinates to our database
       if (warehouseLat && warehouseLng) {
@@ -107,13 +103,7 @@ export const loader = async ({ request }) => {
 
     // If we have no orders or a force refresh is requested, fetch orders from Shopify
     if (ordersCount === 0 || forceRefresh) {
-      console.log(
-        "Fetching orders from Shopify (ordersCount:",
-        ordersCount,
-        ", forceRefresh:",
-        forceRefresh,
-        ")",
-      );
+     
       const orderQuery = `
         query {
           orders(first: 50, query: "fulfillment_status:fulfilled") {
@@ -139,18 +129,8 @@ export const loader = async ({ request }) => {
       const jsonOrders = await resOrders.json();
 
       const ordersFromShopify = jsonOrders.data.orders.edges;
-      console.log("Orders count from Shopify:", ordersFromShopify.length);
-      console.log(
-        "Orders with shipping address:",
-        ordersFromShopify.filter((e) => e.node.shippingAddress).length,
-      );
-      console.log(
-        "Orders with coordinates:",
-        ordersFromShopify.filter((e) => {
-          const addr = e.node.shippingAddress;
-          return addr?.latitude && addr?.longitude;
-        }).length,
-      );
+      
+    
 
       // Process orders and save to database
       const orderPromises = ordersFromShopify.map(async (edge) => {
@@ -159,7 +139,6 @@ export const loader = async ({ request }) => {
         const shippingAddress = order.shippingAddress;
 
         if (!shippingAddress) {
-          console.log(`Order ${order.name} has no shipping address`);
           return null;
         }
 
@@ -172,14 +151,8 @@ export const loader = async ({ request }) => {
             shippingAddress.latitude,
             shippingAddress.longitude,
           );
-          console.log(
-            `Order ${order.name} delivery distance: ${deliveryDistance.toFixed(2)} km`,
-          );
-        } else {
-          console.log(
-            `Order ${order.name} missing coordinates in shipping address`,
-          );
-        }
+          
+        } 
 
         // Create or update order in database
         return prisma.order.upsert({
@@ -213,7 +186,6 @@ export const loader = async ({ request }) => {
       });
 
       await Promise.all(orderPromises.filter((p) => p !== null));
-      console.log("Orders processed and saved to database");
     }
 
     // Always recalculate average delivery distance
@@ -226,7 +198,6 @@ export const loader = async ({ request }) => {
       select: { deliveryDistance: true },
     });
 
-    console.log("Orders with delivery distance in database:", orders.length);
 
     let avgDeliveryDistance = null;
     if (orders.length > 0) {
@@ -236,19 +207,13 @@ export const loader = async ({ request }) => {
       );
       avgDeliveryDistance = totalDistance / orders.length;
 
-      console.log(
-        "Calculated average delivery distance:",
-        avgDeliveryDistance.toFixed(2),
-        "km",
-      );
+      
 
       await prisma.store.update({
         where: { id: store.id },
         data: { avgDeliveryDistance },
       });
-    } else {
-      console.log("No orders with delivery distance found");
-    }
+    } 
 
     // Get orders with distances for display
     const ordersWithDistances = await prisma.order.findMany({

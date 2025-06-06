@@ -38,9 +38,6 @@ export async function recordProductMetricsHistory(product) {
         },
       });
 
-      console.log(
-        `📊 Recorded metrics history for product ${product.title} (${product.shopifyProductId})`,
-      );
       return true;
     }
 
