@@ -1,4 +1,4 @@
-// app/routes/app._index.jsx
+// app/routes/app._index.jsx - Complete file with enhanced product sync
 import { useEffect, useState } from "react";
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
@@ -179,35 +179,30 @@ export const loader = async ({ request }) => {
     hasPackagingWeight &&
     hasProductWeight;
 
-  // Check for missing products by comparing Shopify vs DB
+  // 🆕 ENHANCED: Check for missing products by comparing Shopify vs DB
   let syncStatus = "synced";
   let shopifyProductCount = 0;
   let missingProducts = [];
 
   try {
-    // Get total product count from Shopify
+    // Get total product count from Shopify - using correct field name
     const shopifyCountQuery = `
       query {
-        products(first: 1) {
-          pageInfo {
-            hasNextPage
-          }
-        }
-        productCount: shop {
-          productCount
+        shop {
+          products_count
         }
       }
     `;
 
     const countResponse = await admin.graphql(shopifyCountQuery);
     const countData = await countResponse.json();
-    shopifyProductCount = countData.data?.productCount?.productCount || 0;
+    shopifyProductCount = countData.data?.shop?.products_count || 0;
 
-    console.log(`Shopify products: ${shopifyProductCount}, DB products: ${store._count?.products || 0}`);
+    console.log(`📊 Shopify products: ${shopifyProductCount}, DB products: ${store._count?.products || 0}`);
 
     // If counts don't match, we need to check for missing products
     if (shopifyProductCount !== (store._count?.products || 0)) {
-      console.log("Product counts don't match, checking for missing products...");
+      console.log("🔍 Product counts don't match, checking for missing products...");
       
       // Get all Shopify product IDs
       const shopifyProductsQuery = `
@@ -273,15 +268,15 @@ export const loader = async ({ request }) => {
       } else if (shopifyProductCount < (store._count?.products || 0)) {
         // More products in DB than Shopify (products were deleted)
         syncStatus = "needs_cleanup";
-        console.log("Some products exist in DB but not in Shopify");
+        console.log("🧹 Some products exist in DB but not in Shopify");
       } else {
         syncStatus = "synced";
-        console.log("Products are in sync");
+        console.log("✅ Products are in sync");
       }
     }
 
   } catch (error) {
-    console.error("Error checking product sync:", error);
+    console.error("❌ Error checking product sync:", error);
     syncStatus = "error";
   }
   
@@ -302,7 +297,7 @@ export const loader = async ({ request }) => {
       await updateStoreAggregatedMetrics(store.id);
       
     } catch (metricsError) {
-      console.error("Error updating metrics:", metricsError);
+      console.error("❌ Error updating metrics:", metricsError);
     }
   }
 
@@ -315,7 +310,7 @@ export const loader = async ({ request }) => {
     },
     needsImport: store._count?.products === 0,
     needsMetafieldSetup: !allDefinitionsExist,
-    // Enhanced sync information
+    // 🆕 NEW: Enhanced sync information
     syncStatus,
     shopifyProductCount,
     missingProductsCount: missingProducts.length,
@@ -741,7 +736,7 @@ export const action = async ({ request }) => {
       });
     }
   } else if (action === "sync_missing_products") {
-    // Sync missing products action
+    // 🆕 NEW: Sync missing products action
     const store = await prisma.store.findUnique({
       where: { shopifyDomain: session.shop },
     });
@@ -755,7 +750,7 @@ export const action = async ({ request }) => {
     }
 
     try {
-      console.log("Starting sync of missing products...");
+      console.log("🔄 Starting sync of missing products...");
 
       // Get all DB product IDs for comparison
       const dbProducts = await prisma.product.findMany({
@@ -820,7 +815,7 @@ export const action = async ({ request }) => {
             continue;
           }
 
-          console.log(`Adding missing product: ${shopifyProduct.title}`);
+          console.log(`➕ Adding missing product: ${shopifyProduct.title}`);
 
           // Process metafields (same logic as import_products)
           const metafields = {};
@@ -945,7 +940,7 @@ export const action = async ({ request }) => {
       // Update store-level metrics after sync
       await updateStoreAggregatedMetrics(store.id);
 
-      console.log(`Sync complete: ${syncCount} products added`);
+      console.log(`✅ Sync complete: ${syncCount} products added`);
 
       return json({
         action: "sync_missing_products",
@@ -956,7 +951,7 @@ export const action = async ({ request }) => {
       });
 
     } catch (error) {
-      console.error("Error syncing missing products:", error);
+      console.error("❌ Error syncing missing products:", error);
       return json({
         action: "sync_missing_products",
         success: false,
@@ -973,7 +968,7 @@ export default function Index() {
     store, 
     needsImport, 
     needsMetafieldSetup,
-    // Enhanced sync data
+    // 🆕 NEW: Enhanced sync data
     syncStatus,
     shopifyProductCount,
     missingProductsCount,
@@ -983,7 +978,7 @@ export default function Index() {
   const fetcher = useFetcher();
   const importFetcher = useFetcher();
   const metafieldFetcher = useFetcher();
-  const syncFetcher = useFetcher();
+  const syncFetcher = useFetcher(); // 🆕 NEW: Sync fetcher
   const shopify = useAppBridge();
 
   const isImporting =
@@ -994,7 +989,7 @@ export default function Index() {
     ["loading", "submitting"].includes(metafieldFetcher.state) &&
     metafieldFetcher.formMethod === "POST";
 
-  const isSyncing = 
+  const isSyncing = // 🆕 NEW
     ["loading", "submitting"].includes(syncFetcher.state) &&
     syncFetcher.formMethod === "POST";
 
@@ -1035,7 +1030,7 @@ export default function Index() {
     metafieldFetcher.data,
   ]);
 
-  // Auto-sync missing products if detected
+  // 🆕 NEW: Auto-sync missing products if detected
   useEffect(() => {
     const metafieldsReady = !needsMetafieldSetup || (metafieldFetcher.data && metafieldFetcher.data.success);
     const shouldAutoSync = syncStatus === "needs_sync" && missingProductsCount > 0 && missingProductsCount < 50; // Only auto-sync if < 50 missing
@@ -1061,7 +1056,7 @@ export default function Index() {
       shopify.toast.show("Sustainability metrics initialized");
     }
 
-    // Sync success toast
+    // 🆕 NEW: Sync success toast
     if (syncFetcher.data?.success) {
       shopify.toast.show(`${syncFetcher.data.syncCount} missing products synced`);
     }
@@ -1072,7 +1067,7 @@ export default function Index() {
     importFetcher.submit({ action: "import_products" }, { method: "POST" });
   };
 
-  // Manual sync trigger
+  // 🆕 NEW: Manual sync trigger
   const triggerSync = () => {
     syncFetcher.submit({ action: "sync_missing_products" }, { method: "POST" });
   };
@@ -1099,7 +1094,7 @@ export default function Index() {
                   </Text>
                 </BlockStack>
 
-                {/* Product Sync Status */}
+                {/* 🆕 NEW: Product Sync Status */}
                 {syncStatus === "needs_sync" && !isSyncing && (
                   <Banner title={`${missingProductsCount} Products Need Syncing`} tone="warning">
                     <p>
@@ -1126,6 +1121,13 @@ export default function Index() {
                 {syncStatus === "synced" && store.productCount > 0 && (
                   <Banner title="Products In Sync" tone="success">
                     <p>All {store.productCount} products are synchronized and ready for sustainability tracking.</p>
+                  </Banner>
+                )}
+
+                {syncStatus === "error" && (
+                  <Banner title="Sync Check Failed" tone="critical">
+                    <p>Unable to check product sync status. Check logs for details.</p>
+                    <Button onClick={() => window.location.reload()}>Retry</Button>
                   </Banner>
                 )}
 
@@ -1220,7 +1222,7 @@ export default function Index() {
                     </Banner>
                   )}
 
-                {/* Debug info for missing products (only show in development) */}
+                {/* 🆕 NEW: Debug info for missing products (only show in development) */}
                 {missingProducts && missingProducts.length > 0 && process.env.NODE_ENV === 'development' && (
                   <Banner title="Debug: Missing Products" tone="info">
                     <p>Sample missing products:</p>
