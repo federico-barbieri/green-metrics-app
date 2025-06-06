@@ -50,7 +50,8 @@ export async function generateSustainabilityReportPDF(reportData) {
       
       // Utility function to check if we need a new page
       function checkPageBreak(requiredHeight, forceNewPage = false) {
-        if (forceNewPage || currentY + requiredHeight > pageHeight) {
+        const availableSpace = pageHeight - currentY + 40; // Add some buffer
+        if (forceNewPage || requiredHeight > availableSpace) {
           doc.addPage();
           currentY = 40;
           return true;
@@ -121,7 +122,7 @@ export async function generateSustainabilityReportPDF(reportData) {
            .fillColor(colors.white)
            .fillOpacity(0.9)
            .font(fonts.regular)
-           .text(`● Generated ${format(generatedAt, 'MMMM dd, yyyy')}`, 40, 130)
+           .text(`Generated ${format(generatedAt, 'MMMM dd, yyyy')}`, 40, 130)
            .fillOpacity(1);
         
         currentY = headerHeight + 30;
@@ -220,7 +221,7 @@ export async function generateSustainabilityReportPDF(reportData) {
             target: '70%+',
             status: current.sustainableMaterialsPercent >= 70 ? 'good' : 
                    current.sustainableMaterialsPercent >= 40 ? 'warning' : 'poor',
-            icon: '●' // Using bullet as icon substitute
+            icon: 'M' // Using letter M for Materials
           },
           { 
             label: 'Local Products', 
@@ -228,7 +229,7 @@ export async function generateSustainabilityReportPDF(reportData) {
             target: '40%+',
             status: current.localProductsPercent >= 40 ? 'good' : 
                    current.localProductsPercent >= 20 ? 'warning' : 'poor',
-            icon: '●'
+            icon: 'L' // Using letter L for Local
           },
           { 
             label: 'Packaging Efficiency', 
@@ -236,7 +237,7 @@ export async function generateSustainabilityReportPDF(reportData) {
             target: '<1.2:1',
             status: current.avgPackagingRatio <= 1.2 ? 'good' : 
                    current.avgPackagingRatio <= 1.5 ? 'warning' : 'poor',
-            icon: '●'
+            icon: 'P' // Using letter P for Packaging
           },
           { 
             label: 'Delivery Distance', 
@@ -244,7 +245,7 @@ export async function generateSustainabilityReportPDF(reportData) {
             target: '<40 km',
             status: current.avgDeliveryDistanceKm <= 40 ? 'good' : 
                    current.avgDeliveryDistanceKm <= 60 ? 'warning' : 'poor',
-            icon: '●'
+            icon: 'D' // Using letter D for Delivery
           }
         ];
         
@@ -285,11 +286,17 @@ export async function generateSustainabilityReportPDF(reportData) {
                .font(fonts.bold)
                .text(metric.value, x + 15, y + 20);
             
-            // Icon using colored bullet
-            doc.fontSize(20)
-               .fillColor(statusColor)
-               .font(fonts.regular)
-               .text(metric.icon, x + cardWidth - 25, y + 15);
+            // Icon using colored letter instead of bullet
+            doc.fontSize(12)
+               .fillColor(colors.white)
+               .font(fonts.bold);
+            
+            // Create circular background for icon
+            doc.circle(x + cardWidth - 25, y + 25, 10)
+               .fill(statusColor);
+            
+            const iconWidth = doc.widthOfString(metric.icon);
+            doc.text(metric.icon, x + cardWidth - 25 - iconWidth/2, y + 20);
             
             // Label
             doc.fontSize(12)
@@ -389,40 +396,43 @@ export async function generateSustainabilityReportPDF(reportData) {
         currentY += 20;
       }
       
-      // Enhanced Footer (only on last page)
+      // Enhanced Footer (only add if there's enough space on current page)
       function createFooter() {
         const footerHeight = 60;
         const footerY = doc.page.height - footerHeight;
         
-        // Footer background
-        doc.rect(0, footerY, doc.page.width, footerHeight)
-           .fill(colors.primary);
-        
-        // Decorative elements
-        doc.circle(60, footerY + 30, 20)
-           .fillOpacity(0.1)
-           .fill(colors.white)
-           .fillOpacity(1);
-        
-        // Footer content
-        doc.fontSize(12)
-           .fillColor(colors.white)
-           .font(fonts.bold)
-           .text('Green Metrics', 40, footerY + 15, { 
-             width: pageWidth, 
-             align: 'center' 
-           });
-        
-        doc.fontSize(10)
-           .fillColor(colors.white)
-           .fillOpacity(0.8)
-           .font(fonts.regular)
-           .text('Empowering Sustainable Commerce • Insights for Environmental Impact', 
-                 40, footerY + 32, { 
-                   width: pageWidth, 
-                   align: 'center' 
-                 })
-           .fillOpacity(1);
+        // Only add footer if we have space on current page
+        if (currentY <= footerY - 20) {
+          // Footer background
+          doc.rect(0, footerY, doc.page.width, footerHeight)
+             .fill(colors.primary);
+          
+          // Decorative elements
+          doc.circle(60, footerY + 30, 20)
+             .fillOpacity(0.1)
+             .fill(colors.white)
+             .fillOpacity(1);
+          
+          // Footer content
+          doc.fontSize(12)
+             .fillColor(colors.white)
+             .font(fonts.bold)
+             .text('Green Metrics', 40, footerY + 15, { 
+               width: pageWidth, 
+               align: 'center' 
+             });
+          
+          doc.fontSize(10)
+             .fillColor(colors.white)
+             .fillOpacity(0.8)
+             .font(fonts.regular)
+             .text('Empowering Sustainable Commerce - Insights for Environmental Impact', 
+                   40, footerY + 32, { 
+                     width: pageWidth, 
+                     align: 'center' 
+                   })
+             .fillOpacity(1);
+        }
       }
       
       // Generate the complete report
