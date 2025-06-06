@@ -7,10 +7,9 @@ import { updateStoreAggregatedMetrics } from "../utils/storeMetrics";
 const prisma = new PrismaClient();
 
 export const action = async ({ request }) => {
-  const { shop, topic, payload } = await authenticate.webhook(request);
+  const { shop, payload } = await authenticate.webhook(request);
 
-  console.log(`Received ${topic} webhook for ${shop}`);
-  console.log("Webhook payload:", JSON.stringify(payload, null, 2));
+
 
   try {
     // Get the store
@@ -36,37 +35,22 @@ export const action = async ({ request }) => {
         },
       });
 
-      console.log("Set default warehouse coordinates to Copenhagen");
     }
-
-    console.log(
-      "Warehouse coordinates:",
-      store.warehouseLatitude,
-      store.warehouseLongitude,
-    );
 
     // Extract order data from webhook payload
     const shopifyOrderId = payload.id.toString();
     const shopifyOrderName = payload.name;
     const shippingAddress = payload.shipping_address;
 
-    // Log shipping address details
-    console.log(
-      "Order shipping address:",
-      JSON.stringify(shippingAddress, null, 2),
-    );
 
     // Skip if no shipping address
     if (!shippingAddress) {
-      console.log(`Order ${shopifyOrderName} has no shipping address`);
       return new Response();
     }
 
     // Check if shipping address has coordinates
     if (!shippingAddress.latitude || !shippingAddress.longitude) {
-      console.log(
-        `Order ${shopifyOrderName} shipping address missing coordinates`,
-      );
+
       return new Response();
     }
 
@@ -78,12 +62,10 @@ export const action = async ({ request }) => {
       shippingAddress.longitude,
     );
 
-    console.log(
-      `Calculated delivery distance for order ${shopifyOrderName}: ${deliveryDistance.toFixed(2)} km`,
-    );
+
 
     // Create or update order in database
-    const updatedOrder = await prisma.order.upsert({
+    await prisma.order.upsert({
       where: {
         shopifyOrderId_storeId: {
           shopifyOrderId,
@@ -111,10 +93,8 @@ export const action = async ({ request }) => {
         deliveryDistance,
       },
     });
-    console.log(`Order ${shopifyOrderName} saved to database with ID: ${updatedOrder.id}`);
 
 
-    console.log(`Order ${shopifyOrderName} saved to database`);
 
     // Update the store's average delivery distance
     const orders = await prisma.order.findMany({
@@ -128,9 +108,7 @@ export const action = async ({ request }) => {
       },
     });
 
-    console.log(
-      `Found ${orders.length} orders with delivery distance in database`,
-    );
+
 
     if (orders.length > 0) {
       const totalDistance = orders.reduce(
@@ -139,9 +117,7 @@ export const action = async ({ request }) => {
       );
       const avgDeliveryDistance = totalDistance / orders.length;
 
-      console.log(
-        `Updated average delivery distance: ${avgDeliveryDistance.toFixed(2)} km`,
-      );
+  
 
       await prisma.store.update({
         where: { id: store.id },
@@ -150,12 +126,9 @@ export const action = async ({ request }) => {
 
       // Update store-level aggregated metrics (including delivery distance)
       await updateStoreAggregatedMetrics(store.id);
-      console.log(
-        `Store metrics updated with new average delivery distance: ${avgDeliveryDistance.toFixed(2)} km`,
-      );
+      
     }
 
-    console.log(`Order ${shopifyOrderName} processed for delivery distance`);
   } catch (error) {
     console.error(`Error handling order fulfillment: ${error.message}`);
     console.error(error.stack);

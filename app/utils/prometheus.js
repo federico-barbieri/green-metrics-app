@@ -45,7 +45,6 @@ export class PrometheusClient {
     const now = Math.floor(Date.now() / 1000);
     const start = now - (24 * 60 * 60); // 24 hours ago
     
-    console.log(`🔍 Fetching metrics for store_id: ${storeId}`);
     
     try {
       // Current metrics (latest values) - using the exact Grafana queries
@@ -63,14 +62,6 @@ export class PrometheusClient {
         prometheus.query(`store_avg_delivery_distance_km{store_id="${storeId}"}`)
       ]);
   
-      // Debug: Log the raw results
-      console.log('📊 Raw Prometheus results:', {
-        avgSustainableMaterials,
-        avgPackagingRatio,
-        totalProducts,
-        localProducts,
-        avgDeliveryDistance
-      });
   
       // Time series data for trends
       const [
@@ -107,14 +98,7 @@ export class PrometheusClient {
       const sustainableMaterialsValue = getValue(avgSustainableMaterials);
       const packagingRatioValue = getValue(avgPackagingRatio);
       const deliveryDistanceValue = getValue(avgDeliveryDistance);
-  
-      console.log('Processed values:', {
-        totalProductsValue,
-        localProductsValue,
-        sustainableMaterialsValue,
-        packagingRatioValue,
-        deliveryDistanceValue
-      });
+
   
       return {
         current: {
@@ -139,15 +123,12 @@ export class PrometheusClient {
   }
   
   function getValue(prometheusResult) {
-    console.log('Processing Prometheus result:', prometheusResult);
     
     if (!prometheusResult || prometheusResult.length === 0) {
-      console.log('No data returned from Prometheus');
       return 0;
     }
     
     const value = parseFloat(prometheusResult[0].value[1]);
-    console.log('Extracted value:', value);
     
     return isNaN(value) ? 0 : value;
   }

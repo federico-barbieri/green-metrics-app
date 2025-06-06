@@ -7,9 +7,8 @@ import { updateProductMetrics } from "../utils/metrics"; // Import metrics utili
 const prisma = new PrismaClient();
 
 export const action = async ({ request }) => {
-  const { shop, topic, payload, admin } = await authenticate.webhook(request);
+  const { shop, payload, admin } = await authenticate.webhook(request);
 
-  console.log(`Received ${topic} webhook for ${shop}`);
 
   try {
     // Get the store
@@ -70,9 +69,7 @@ export const action = async ({ request }) => {
 
     // If metafields are missing, add them automatically
     if (!hasAllMetafields) {
-      console.log(
-        `Product ${productTitle} missing metafields. Adding default values.`,
-      );
+      
 
       try {
         const metafieldsToAdd = [];
@@ -151,11 +148,7 @@ export const action = async ({ request }) => {
             console.error(
               `Error setting metafields for product ${productTitle}: ${errorMessages}`,
             );
-          } else {
-            console.log(
-              `Set default metafields for new product ${productTitle}`,
-            );
-          }
+          } 
         }
       } catch (error) {
         console.error(
@@ -165,7 +158,6 @@ export const action = async ({ request }) => {
       }
     }
 
-    console.log(`Adding new product: ${productId} - ${productTitle}`);
 
     // Create product in database
     const newProduct = await prisma.product.create({
@@ -177,11 +169,9 @@ export const action = async ({ request }) => {
       },
     });
 
-    console.log(`Product created: ${productId} for store: ${shop}`);
 
     // Update metrics in Prometheus
     await updateProductMetrics(newProduct);
-    console.log(`Metrics created for new product: ${productId}`);
   } catch (error) {
     console.error(`Error handling product create: ${error.message}`);
     console.error(error.stack);

@@ -6,9 +6,8 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export const action = async ({ request }) => {
-  const { shop, topic, payload } = await authenticate.webhook(request);
+  const { shop, payload } = await authenticate.webhook(request);
 
-  console.log(`Received ${topic} webhook for ${shop}`);
 
   try {
     // Get the store
@@ -24,7 +23,6 @@ export const action = async ({ request }) => {
     // Extract product ID
     const productId = payload.id.toString();
 
-    console.log(`Deleting product: ${productId}`);
 
     // Find the product first
     const product = await prisma.product.findFirst({
@@ -43,10 +41,7 @@ export const action = async ({ request }) => {
         },
       });
 
-      console.log(`Product deleted: ${productId} for store: ${shop}`);
-    } else {
-      console.log(`Product not found for deletion: ${productId}`);
-    }
+    } 
   } catch (error) {
     console.error(`Error handling product delete: ${error.message}`);
     console.error(error.stack);

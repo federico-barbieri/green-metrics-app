@@ -73,10 +73,6 @@ export async function updateStoreAggregatedMetrics(storeId) {
         store.avgDeliveryDistance,
       );
     }
-
-    console.log(
-      `📊 Updated store metrics for ${store.name || store.shopifyDomain}`,
-    );
     return true;
   } catch (error) {
     console.error("Error updating store aggregated metrics:", error);
@@ -97,7 +93,6 @@ export async function updateAllStoresMetrics() {
       await updateStoreAggregatedMetrics(store.id);
     }
 
-    console.log(`📊 Updated metrics for ${stores.length} stores`);
     return true;
   } catch (error) {
     console.error("Error updating all store metrics:", error);
