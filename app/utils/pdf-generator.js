@@ -36,6 +36,14 @@ export async function generateSustainabilityReportPDF(reportData) {
         cardBg: '#FAFAFA'        // Card background
       };
       
+      // Font configuration - using only standard PDFKit fonts
+      const fonts = {
+        regular: 'Helvetica',
+        bold: 'Helvetica-Bold',
+        italic: 'Helvetica-Oblique',
+        boldItalic: 'Helvetica-BoldOblique'
+      };
+      
       const pageWidth = doc.page.width - 80; // Account for margins
       const pageHeight = doc.page.height - 80;
       let currentY = 40;
@@ -59,13 +67,15 @@ export async function generateSustainabilityReportPDF(reportData) {
         doc.rect(0, 0, doc.page.width, headerHeight)
            .fill(colors.primary);
         
-        // Gradient overlay effect
+        // Gradient overlay effect using multiple rectangles
         for (let i = 0; i < 20; i++) {
           const opacity = 0.05 - (i * 0.002);
-          doc.rect(0, headerHeight - 60 + (i * 2), doc.page.width, 2)
-             .fillOpacity(opacity)
-             .fill(colors.white)
-             .fillOpacity(1);
+          if (opacity > 0) {
+            doc.rect(0, headerHeight - 60 + (i * 2), doc.page.width, 2)
+               .fillOpacity(opacity)
+               .fill(colors.white)
+               .fillOpacity(1);
+          }
         }
         
         // Decorative elements
@@ -79,10 +89,10 @@ export async function generateSustainabilityReportPDF(reportData) {
            .fill(colors.white)
            .fillOpacity(1);
         
-        // Header text with better typography
+        // Header text with proper font handling
         doc.fontSize(32)
            .fillColor(colors.white)
-           .font('Helvetica-Bold')
+           .font(fonts.bold)
            .text('SUSTAINABILITY', 40, 35, { 
              width: pageWidth, 
              align: 'left' 
@@ -90,24 +100,27 @@ export async function generateSustainabilityReportPDF(reportData) {
         
         doc.fontSize(32)
            .fillColor(colors.accent)
+           .font(fonts.bold)
            .text('REPORT', 40, 70, { 
              width: pageWidth, 
              align: 'left' 
            });
         
         // Store name with elegant styling
+        const cleanStoreName = storeName.replace('.myshopify.com', '').toUpperCase();
         doc.fontSize(14)
            .fillColor(colors.white)
-           .font('Helvetica')
-           .text(storeName.replace('.myshopify.com', '').toUpperCase(), 40, 115, { 
+           .font(fonts.regular)
+           .text(cleanStoreName, 40, 115, { 
              width: pageWidth - 100, 
              align: 'left' 
            });
         
-        // Date with icon-like styling
+        // Date with styling
         doc.fontSize(10)
            .fillColor(colors.white)
            .fillOpacity(0.9)
+           .font(fonts.regular)
            .text(`● Generated ${format(generatedAt, 'MMMM dd, yyyy')}`, 40, 130)
            .fillOpacity(1);
         
@@ -120,17 +133,13 @@ export async function generateSustainabilityReportPDF(reportData) {
         checkPageBreak(cardHeight + 20);
         
         // Card background with shadow effect
-        doc.roundedRect(40, currentY, pageWidth, cardHeight, 12)
-           .fill(colors.white);
-        
-        // Shadow effect
         doc.roundedRect(42, currentY + 2, pageWidth, cardHeight, 12)
            .fillOpacity(0.1)
            .fill(colors.text)
            .fillOpacity(1);
         
-        // Card border
         doc.roundedRect(40, currentY, pageWidth, cardHeight, 12)
+           .fill(colors.white)
            .stroke(colors.border)
            .lineWidth(1);
         
@@ -140,7 +149,7 @@ export async function generateSustainabilityReportPDF(reportData) {
         const circleRadius = 40;
         const scoreColor = getScoreColor(sustainabilityScore, colors);
         
-        // Outer glow effect
+        // Outer glow effect using multiple circles
         for (let i = 5; i > 0; i--) {
           doc.circle(circleX, circleY, circleRadius + i)
              .fillOpacity(0.05)
@@ -160,27 +169,27 @@ export async function generateSustainabilityReportPDF(reportData) {
         
         // Score text with better positioning
         const scoreText = sustainabilityScore.toString();
-        const scoreWidth = doc.widthOfString(scoreText, { fontSize: 28 });
-        
         doc.fontSize(28)
            .fillColor(colors.white)
-           .font('Helvetica-Bold')
-           .text(scoreText, circleX - scoreWidth/2, circleY - 10);
+           .font(fonts.bold);
         
-        // Score description with modern typography
+        const scoreWidth = doc.widthOfString(scoreText);
+        doc.text(scoreText, circleX - scoreWidth/2, circleY - 10);
+        
+        // Score description with proper typography
         doc.fontSize(24)
            .fillColor(colors.text)
-           .font('Helvetica-Light')
+           .font(fonts.regular)
            .text('Sustainability Score', 200, currentY + 30);
         
         doc.fontSize(14)
            .fillColor(scoreColor)
-           .font('Helvetica-Bold')
+           .font(fonts.bold)
            .text(getScoreDescription(sustainabilityScore).toUpperCase(), 200, currentY + 58);
         
         doc.fontSize(11)
            .fillColor(colors.textSecondary)
-           .font('Helvetica')
+           .font(fonts.regular)
            .text('Based on materials, packaging, delivery & local sourcing', 200, currentY + 80, { 
              width: pageWidth - 180 
            });
@@ -195,7 +204,7 @@ export async function generateSustainabilityReportPDF(reportData) {
         // Section header with underline
         doc.fontSize(20)
            .fillColor(colors.text)
-           .font('Helvetica-Bold')
+           .font(fonts.bold)
            .text('Performance Metrics', 40, currentY);
         
         // Decorative underline
@@ -211,7 +220,7 @@ export async function generateSustainabilityReportPDF(reportData) {
             target: '70%+',
             status: current.sustainableMaterialsPercent >= 70 ? 'good' : 
                    current.sustainableMaterialsPercent >= 40 ? 'warning' : 'poor',
-            icon: '🌱'
+            icon: '●' // Using bullet as icon substitute
           },
           { 
             label: 'Local Products', 
@@ -219,7 +228,7 @@ export async function generateSustainabilityReportPDF(reportData) {
             target: '40%+',
             status: current.localProductsPercent >= 40 ? 'good' : 
                    current.localProductsPercent >= 20 ? 'warning' : 'poor',
-            icon: '🏪'
+            icon: '●'
           },
           { 
             label: 'Packaging Efficiency', 
@@ -227,7 +236,7 @@ export async function generateSustainabilityReportPDF(reportData) {
             target: '<1.2:1',
             status: current.avgPackagingRatio <= 1.2 ? 'good' : 
                    current.avgPackagingRatio <= 1.5 ? 'warning' : 'poor',
-            icon: '📦'
+            icon: '●'
           },
           { 
             label: 'Delivery Distance', 
@@ -235,7 +244,7 @@ export async function generateSustainabilityReportPDF(reportData) {
             target: '<40 km',
             status: current.avgDeliveryDistanceKm <= 40 ? 'good' : 
                    current.avgDeliveryDistanceKm <= 60 ? 'warning' : 'poor',
-            icon: '🚚'
+            icon: '●'
           }
         ];
         
@@ -251,18 +260,15 @@ export async function generateSustainabilityReportPDF(reportData) {
             const x = 40 + j * (cardWidth + 20);
             const y = currentY;
             
-            // Card background
-            doc.roundedRect(x, y, cardWidth, cardHeight, 8)
-               .fill(colors.white);
-            
             // Card shadow
             doc.roundedRect(x + 1, y + 1, cardWidth, cardHeight, 8)
                .fillOpacity(0.05)
                .fill(colors.text)
                .fillOpacity(1);
             
-            // Card border
+            // Card background and border
             doc.roundedRect(x, y, cardWidth, cardHeight, 8)
+               .fill(colors.white)
                .stroke(colors.border)
                .lineWidth(1);
             
@@ -273,27 +279,28 @@ export async function generateSustainabilityReportPDF(reportData) {
             doc.roundedRect(x, y, cardWidth, 6, 3)
                .fill(statusColor);
             
-            // Metric value with better typography
+            // Metric value
             doc.fontSize(24)
                .fillColor(statusColor)
-               .font('Helvetica-Bold')
+               .font(fonts.bold)
                .text(metric.value, x + 15, y + 20);
             
-            // Icon (using emoji as placeholder for better design)
-            doc.fontSize(16)
-               .fillColor(colors.textLight)
-               .text(metric.icon, x + cardWidth - 35, y + 15);
+            // Icon using colored bullet
+            doc.fontSize(20)
+               .fillColor(statusColor)
+               .font(fonts.regular)
+               .text(metric.icon, x + cardWidth - 25, y + 15);
             
             // Label
             doc.fontSize(12)
                .fillColor(colors.text)
-               .font('Helvetica-Bold')
+               .font(fonts.bold)
                .text(metric.label, x + 15, y + 55);
             
-            // Target with subtle styling
+            // Target
             doc.fontSize(10)
                .fillColor(colors.textSecondary)
-               .font('Helvetica')
+               .font(fonts.regular)
                .text(`Target: ${metric.target}`, x + 15, y + 75);
             
             // Status indicator dot
@@ -314,7 +321,7 @@ export async function generateSustainabilityReportPDF(reportData) {
         // Section header
         doc.fontSize(20)
            .fillColor(colors.text)
-           .font('Helvetica-Bold')
+           .font(fonts.bold)
            .text('Recommendations', 40, currentY);
         
         // Decorative underline
@@ -329,22 +336,19 @@ export async function generateSustainabilityReportPDF(reportData) {
           const recHeight = 90;
           checkPageBreak(recHeight + 15);
           
-          // Recommendation card with modern design
-          doc.roundedRect(40, currentY, pageWidth, recHeight, 10)
-             .fill(colors.white);
-          
           // Card shadow
           doc.roundedRect(41, currentY + 1, pageWidth, recHeight, 10)
              .fillOpacity(0.05)
              .fill(colors.text)
              .fillOpacity(1);
           
-          // Card border
+          // Recommendation card
           doc.roundedRect(40, currentY, pageWidth, recHeight, 10)
+             .fill(colors.white)
              .stroke(colors.border)
              .lineWidth(1);
           
-          // Priority indicator with enhanced design
+          // Priority indicator
           const priorityColor = rec.priority === 'high' ? colors.danger : 
                                rec.priority === 'medium' ? colors.warning : colors.success;
           
@@ -354,25 +358,26 @@ export async function generateSustainabilityReportPDF(reportData) {
           
           // Priority badge
           const priorityText = rec.priority.toUpperCase();
-          const badgeWidth = doc.widthOfString(priorityText, { fontSize: 8 }) + 12;
+          doc.fontSize(8)
+             .fillColor(colors.white)
+             .font(fonts.bold);
+          
+          const badgeWidth = doc.widthOfString(priorityText) + 12;
           
           doc.roundedRect(pageWidth - badgeWidth + 25, currentY + 15, badgeWidth, 16, 8)
              .fill(priorityColor);
           
-          doc.fontSize(8)
-             .fillColor(colors.white)
-             .font('Helvetica-Bold')
-             .text(priorityText, pageWidth - badgeWidth + 31, currentY + 19);
+          doc.text(priorityText, pageWidth - badgeWidth + 31, currentY + 19);
           
-          // Recommendation content with better spacing
+          // Recommendation content
           doc.fontSize(14)
              .fillColor(colors.text)
-             .font('Helvetica-Bold')
+             .font(fonts.bold)
              .text(rec.title, 60, currentY + 20, { width: pageWidth - 100 });
           
           doc.fontSize(11)
              .fillColor(colors.textSecondary)
-             .font('Helvetica')
+             .font(fonts.regular)
              .text(rec.description, 60, currentY + 42, { 
                width: pageWidth - 100,
                lineGap: 2
@@ -399,10 +404,10 @@ export async function generateSustainabilityReportPDF(reportData) {
            .fill(colors.white)
            .fillOpacity(1);
         
-        // Footer content with better typography
+        // Footer content
         doc.fontSize(12)
            .fillColor(colors.white)
-           .font('Helvetica-Bold')
+           .font(fonts.bold)
            .text('Green Metrics', 40, footerY + 15, { 
              width: pageWidth, 
              align: 'center' 
@@ -411,7 +416,7 @@ export async function generateSustainabilityReportPDF(reportData) {
         doc.fontSize(10)
            .fillColor(colors.white)
            .fillOpacity(0.8)
-           .font('Helvetica')
+           .font(fonts.regular)
            .text('Empowering Sustainable Commerce • Insights for Environmental Impact', 
                  40, footerY + 32, { 
                    width: pageWidth, 
@@ -421,13 +426,18 @@ export async function generateSustainabilityReportPDF(reportData) {
       }
       
       // Generate the complete report
-      createHeader();
-      createScoreCard();
-      createMetricsSection();
-      createRecommendationsSection();
-      createFooter();
-      
-      doc.end();
+      try {
+        createHeader();
+        createScoreCard();
+        createMetricsSection();
+        createRecommendationsSection();
+        createFooter();
+        
+        doc.end();
+      } catch (error) {
+        console.error('Error in PDF generation sections:', error);
+        reject(error);
+      }
     });
     
   } catch (error) {
