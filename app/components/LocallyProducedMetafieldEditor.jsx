@@ -37,7 +37,6 @@ export default function LocallyProducedMetafieldEditor({
         setToastError(true);
         setToastActive(true);
       } else {
-        console.log("Metafield updated");
         setToastError(false);
         setToastActive(true);
       }

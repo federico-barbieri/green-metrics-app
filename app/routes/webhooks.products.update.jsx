@@ -6,9 +6,8 @@ import { updateProductMetrics } from "../utils/metrics"; // Import metrics utili
 const prisma = new PrismaClient();
 
 export const action = async ({ request }) => {
-  const { shop, topic, payload } = await authenticate.webhook(request);
+  const { shop, payload } = await authenticate.webhook(request);
 
-  console.log(`Received ${topic} webhook for ${shop}`);
 
   try {
     // Get the store
@@ -60,8 +59,6 @@ export const action = async ({ request }) => {
         metafields.packagingWeight / metafields.productWeight;
     }
 
-    console.log(`Updating product: ${productId} - ${productTitle}`);
-
     // Find the product
     const product = await prisma.product.findFirst({
       where: {
@@ -85,7 +82,6 @@ export const action = async ({ request }) => {
         },
       });
 
-      console.log(`Product updated: ${productId} for store: ${shop}`);
     } else {
       // If product doesn't exist yet, create it
       updatedProduct = await prisma.product.create({
@@ -97,13 +93,11 @@ export const action = async ({ request }) => {
         },
       });
 
-      console.log(`Product created on update: ${productId} for store: ${shop}`);
     }
 
     // Update metrics in Prometheus after DB update
     if (updatedProduct) {
       await updateProductMetrics(updatedProduct);
-      console.log(`Metrics updated for product: ${productId}`);
     }
   } catch (error) {
     console.error(`Error handling product update: ${error.message}`);
