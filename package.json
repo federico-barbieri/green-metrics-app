@@ -43,6 +43,7 @@
     "date-fns": "^4.1.0",
     "graphql-request": "^7.1.2",
     "isbot": "^5.1.0",
+    "papaparse": "^5.5.3",
     "pdfkit": "^0.17.1",
     "prisma": "^6.2.1",
     "prom-client": "^15.1.3",
