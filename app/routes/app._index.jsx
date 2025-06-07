@@ -35,11 +35,13 @@ export default function Index() {
             <BlockStack gap="500">
               <WelcomeCard />
               
-              <ProductSyncStatus loaderData={loaderData} />
+              {/* Only show sync status if there are issues */}
+              {loaderData.syncStatus !== "synced" && <ProductSyncStatus loaderData={loaderData} />}
               
               <MetafieldSetupStatus />
               
-              <ProductImportStatus loaderData={loaderData} />
+              {/* Only show import status if products need importing */}
+              {loaderData.needsImport && <ProductImportStatus loaderData={loaderData} />}
               
               {canGenerateReport && <SustainabilityReportDownload />}
             </BlockStack>
