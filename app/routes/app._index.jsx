@@ -40,8 +40,7 @@ export default function Index() {
               
               <MetafieldSetupStatus />
               
-              {/* Only show import status if products need importing */}
-              {loaderData.needsImport && <ProductImportStatus loaderData={loaderData} />}
+              <ProductImportStatus loaderData={loaderData} />
               
               {canGenerateReport && <SustainabilityReportDownload />}
             </BlockStack>
