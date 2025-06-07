@@ -9,9 +9,9 @@ module.exports = {
   globals: {
     shopify: "readonly"
   },
-  rules: {    
-    'no-console': ['error', { allow: ['warn', 'error'] }], 
-  },
+ // rules: {    
+  //  'no-console': ['error', { allow: ['warn', 'error'] }], 
+ // },
   overrides: [
     {
       files: ['**/*.test.{js,jsx}', '**/*.spec.{js,jsx}'],

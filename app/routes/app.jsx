@@ -26,6 +26,7 @@ export default function App() {
         <Link to="/app/locallyproduced">Locally Produced</Link>
         <Link to="/app/packagingweight">Packaging Weight</Link>
         <Link to="/app/sustainablematerials">Sustainable Materials</Link>
+        <Link to="/app/debug/webhooks">Debug webhooks</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>
