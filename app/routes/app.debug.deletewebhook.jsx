@@ -2,9 +2,10 @@
 
 import { authenticate } from "../shopify.server";
 import { json } from "@remix-run/node";
-import { useLoaderData, useFetcher } from "@remix-run/react";
-import { Page, Card, Text, BlockStack, Banner, Button, List } from "@shopify/polaris";
+import { useLoaderData, useFetcher, useSubmit } from "@remix-run/react";
+import { Page, Card, Text, BlockStack, Banner, Button, List, TextField, Select } from "@shopify/polaris";
 import { PrismaClient } from "@prisma/client";
+import { useState, useCallback } from "react";
 
 const prisma = new PrismaClient();
 
@@ -73,6 +74,7 @@ export const loader = async ({ request }) => {
     
     // 4. Compare Shopify vs DB products
     const shopifyProductIds = shopifyProducts.map(p => p.node.id.split('/').pop());
+    const dbProductIds = dbProducts.map(p => p.shopifyProductId);
     
     // Find products in DB but not in Shopify (should be deleted)
     const orphanedProducts = dbProducts.filter(
@@ -117,6 +119,7 @@ export const action = async ({ request }) => {
   const actionType = formData.get("action");
   
   if (actionType === "test_delete_webhook") {
+    const productId = formData.get("productId");
     
     try {
       // Create a test product that we can immediately delete
@@ -270,7 +273,12 @@ export const action = async ({ request }) => {
   
   if (actionType === "re_register_delete_webhook") {
     try {
-      const currentUrl = new URL(request.url).origin;
+      let currentUrl = new URL(request.url).origin;
+      
+      // Force HTTPS for webhook URLs (Shopify requirement)
+      if (currentUrl.startsWith('http://')) {
+        currentUrl = currentUrl.replace('http://', 'https://');
+      }
       
       // First, try to delete existing PRODUCTS_DELETE webhook
       const webhooksResponse = await admin.graphql(`
@@ -365,6 +373,7 @@ export default function DeleteWebhookDebug() {
   } = useLoaderData();
   
   const fetcher = useFetcher();
+  const submit = useSubmit();
   
   if (error) {
     return (
