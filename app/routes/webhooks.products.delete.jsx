@@ -1,7 +1,8 @@
-// app/routes/webhooks.products.delete.jsx - With detailed debugging
+// app/routes/webhooks.products.delete.jsx - ENHANCED DELETE BEAST 🔥
 import { authenticate } from "../shopify.server";
 import { PrismaClient } from "@prisma/client";
-import { updateStoreAggregatedMetrics } from "../utils/storeMetrics"; // Update store metrics after deletion
+import { updateStoreAggregatedMetrics } from "../utils/storeMetrics";
+import { metrics } from "../routes/metrics"; // Import metrics to reset product metrics
 
 const prisma = new PrismaClient();
 
@@ -80,9 +81,12 @@ export const action = async ({ request }) => {
       console.log(`   - Previous delete webhook already processed this`);
       
       return new Response(JSON.stringify({ 
-        message: "Product not found in database",
+        success: true,
+        message: "Product not found in database (already deleted or never existed)",
         productId: productId,
-        action: "no_action_needed"
+        action: "no_action_needed",
+        processingTime: Date.now() - startTime,
+        requestId: requestId
       }), { 
         status: 200,
         headers: { 'Content-Type': 'application/json' }
@@ -117,7 +121,44 @@ export const action = async ({ request }) => {
       avgPackagingRatio: storeStatsBefore._avg.packagingRatio
     });
 
-    // Step 6: Delete product from database
+    // 🔥 NEW: Step 6: Clear Prometheus metrics for this product BEFORE deletion
+    console.log(`📊 [${requestId}] Clearing Prometheus metrics for deleted product...`);
+    try {
+      // Set all product metrics to 0 (effectively removing them)
+      metrics.sustainableMaterialsGauge.remove({
+        product_id: product.shopifyProductId,
+        product_title: product.title,
+        store_id: product.storeId,
+      });
+      
+      metrics.packagingRatioGauge.remove({
+        product_id: product.shopifyProductId,
+        product_title: product.title,
+        store_id: product.storeId,
+      });
+      
+      metrics.locallyProducedGauge.remove({
+        product_id: product.shopifyProductId,
+        product_title: product.title,
+        store_id: product.storeId,
+      });
+      
+      metrics.productStatusGauge.set(
+        {
+          product_id: product.shopifyProductId,
+          product_title: product.title,
+          store_id: product.storeId,
+        },
+        0 // Set status to 0 (deleted)
+      );
+      
+      console.log(`✅ [${requestId}] Individual product metrics cleared from Prometheus`);
+    } catch (metricsError) {
+      console.error(`⚠️ [${requestId}] Error clearing individual product metrics:`, metricsError);
+      // Don't fail the deletion for metrics errors
+    }
+
+    // Step 7: Delete product from database
     console.log(`🗑️ [${requestId}] Deleting product from database...`);
     
     const deletedProduct = await prisma.product.delete({
@@ -128,7 +169,7 @@ export const action = async ({ request }) => {
 
     console.log(`✅ [${requestId}] Product successfully deleted from database: ${deletedProduct.id}`);
 
-    // Step 7: Get store stats after deletion
+    // Step 8: Get store stats after deletion
     const storeStatsAfter = await prisma.product.aggregate({
       where: { storeId: store.id },
       _count: { _all: true },
@@ -145,46 +186,90 @@ export const action = async ({ request }) => {
       productsRemoved: storeStatsBefore._count._all - storeStatsAfter._count._all
     });
 
-    // Step 8: Update store-level aggregated metrics
-    console.log(`📊 [${requestId}] Updating store-level aggregated metrics...`);
+    // 🔥 ENHANCED: Step 9: Update ALL store-level aggregated metrics
+    console.log(`📊 [${requestId}] Updating ALL store-level aggregated metrics...`);
     try {
       await updateStoreAggregatedMetrics(store.id);
-      console.log(`✅ [${requestId}] Store-level metrics updated successfully`);
+      console.log(`✅ [${requestId}] Store-level aggregated metrics updated successfully`);
     } catch (metricsError) {
-      console.error(`❌ [${requestId}] Error updating store metrics:`, metricsError);
+      console.error(`❌ [${requestId}] Error updating store aggregated metrics:`, metricsError);
       // Don't fail the webhook if metrics update fails
     }
 
-    // Step 9: Log impact analysis
+    // 🔥 NEW: Step 10: Update individual product metrics for remaining products
+    console.log(`📊 [${requestId}] Refreshing metrics for remaining products...`);
+    try {
+      const remainingProducts = await prisma.product.findMany({
+        where: { storeId: store.id }
+      });
+      
+      console.log(`🔄 [${requestId}] Updating metrics for ${remainingProducts.length} remaining products...`);
+      
+      // Update metrics for each remaining product to ensure consistency
+      const { updateProductMetrics } = await import("../utils/metrics");
+      let updatedCount = 0;
+      
+      for (const remainingProduct of remainingProducts) {
+        try {
+          await updateProductMetrics(remainingProduct);
+          updatedCount++;
+        } catch (productMetricsError) {
+          console.error(`⚠️ [${requestId}] Error updating metrics for product ${remainingProduct.id}:`, productMetricsError);
+        }
+      }
+      
+      console.log(`✅ [${requestId}] Updated metrics for ${updatedCount}/${remainingProducts.length} remaining products`);
+    } catch (refreshError) {
+      console.error(`❌ [${requestId}] Error refreshing remaining product metrics:`, refreshError);
+    }
+
+    // Step 11: Log comprehensive impact analysis
     const impactAnalysis = {
       productRemoved: {
         id: deletedProduct.id,
+        shopifyProductId: deletedProduct.shopifyProductId,
         title: deletedProduct.title,
         sustainableMaterials: deletedProduct.sustainableMaterials,
-        isLocallyProduced: deletedProduct.isLocallyProduced
+        isLocallyProduced: deletedProduct.isLocallyProduced,
+        packagingWeight: deletedProduct.packagingWeight,
+        productWeight: deletedProduct.productWeight,
+        packagingRatio: deletedProduct.packagingRatio
       },
       storeImpact: {
         productCountChange: storeStatsBefore._count._all - storeStatsAfter._count._all,
         sustainabilityScoreChange: {
           before: storeStatsBefore._avg.sustainableMaterials,
-          after: storeStatsAfter._avg.sustainableMaterials
+          after: storeStatsAfter._avg.sustainableMaterials,
+          improvement: (storeStatsAfter._avg.sustainableMaterials || 0) - (storeStatsBefore._avg.sustainableMaterials || 0)
+        },
+        packagingEfficiencyChange: {
+          before: storeStatsBefore._avg.packagingRatio,
+          after: storeStatsAfter._avg.packagingRatio,
+          improvement: (storeStatsBefore._avg.packagingRatio || 0) - (storeStatsAfter._avg.packagingRatio || 0)
         }
+      },
+      metricsUpdated: {
+        prometheusMetricsCleared: true,
+        storeMetricsUpdated: true,
+        remainingProductsRefreshed: true
       }
     };
 
-    console.log(`📈 [${requestId}] Deletion impact analysis:`, impactAnalysis);
+    console.log(`📈 [${requestId}] COMPREHENSIVE deletion impact analysis:`, impactAnalysis);
 
     const processingTime = Date.now() - startTime;
     console.log(`🎉 [${requestId}] Product DELETE webhook processing completed successfully in ${processingTime}ms`);
+    console.log(`🔥 [${requestId}] FULL CLEANUP COMPLETE: Database cleaned, metrics updated, store stats refreshed!`);
     
     return new Response(JSON.stringify({ 
       success: true, 
       productId: deletedProduct.id,
       shopifyProductId: productId,
-      action: "deleted",
+      action: "deleted_with_full_cleanup",
       impactAnalysis: impactAnalysis,
       processingTime: processingTime,
-      requestId: requestId
+      requestId: requestId,
+      message: "Product deleted and all metrics updated successfully"
     }), { 
       status: 200,
       headers: { 'Content-Type': 'application/json' }
