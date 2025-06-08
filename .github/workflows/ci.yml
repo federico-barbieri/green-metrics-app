@@ -41,7 +41,7 @@ jobs:
         echo "Running ESLint..."
         npx eslint . --max-warnings 0
     
-    - name: 🔒 NPM Security Audit
+    - name: NPM Security Audit
       run: |
         echo "Running npm audit..."
         npm audit fix --audit-level=high
