@@ -307,7 +307,7 @@ export default function DeliveryDistance() {
   const bentoGridStyles = {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
-    gridTemplateRows: '250px auto',
+    gridTemplateRows: 'min-content auto',
     gap: '0.5rem',
     gridTemplateAreas: `
       "metric hotspots refresh"

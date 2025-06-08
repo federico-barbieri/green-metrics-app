@@ -118,12 +118,11 @@ export default function SustainableProducts() {
   const lowProducts = products.filter(p => p.badgeStatus === "critical").length;
   
 
-  // Bento Grid CSS
   const bentoGridStyles = {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
-    gridTemplateRows: '200px auto',
-    gap: '1rem',
+    gridTemplateRows: 'min-content auto', 
+    gap: '0.5rem', 
     gridTemplateAreas: `
       "overview distribution sustainability"
       "productlist productlist productlist"
@@ -138,7 +137,7 @@ export default function SustainableProducts() {
   };
 
   const renderOverviewCard = () => (
-    <Card sectioned style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+    <Card sectioned>
       <BlockStack gap="400">
         <Text variant="headingMd" alignment="center">🌱 Materials Overview</Text>
         <Text variant="heading2xl" alignment="center">
@@ -152,7 +151,7 @@ export default function SustainableProducts() {
   );
 
   const renderDistributionCard = () => (
-    <Card sectioned style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+    <Card sectioned>
       <BlockStack gap="300">
         <Text variant="headingMd" alignment="center">📊 Sustainability Distribution</Text>
         <BlockStack gap="200">
@@ -166,7 +165,7 @@ export default function SustainableProducts() {
           </InlineStack>
           <InlineStack justify="space-between" align="center">
             <Text variant="bodyMd">Low (0-40%) &nbsp;</Text>
-            <Badge tone="critical"> {lowProducts}</Badge>
+            <Badge tone="critical">{lowProducts}</Badge>
           </InlineStack>
         </BlockStack>
       </BlockStack>
@@ -177,7 +176,7 @@ export default function SustainableProducts() {
     const sustainablePercentage = totalProducts > 0 ? Math.round((sustainableProducts / totalProducts) * 100) : 0;
     
     return (
-      <Card sectioned style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <Card sectioned>
         <BlockStack gap="300">
           <Text variant="headingMd" alignment="center">🎯 Sustainability Score</Text>
           <Text variant="heading2xl" alignment="center">

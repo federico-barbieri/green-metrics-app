@@ -122,12 +122,11 @@ export default function PackagingWeight() {
   const heavyPackagingProducts = products.filter(p => p.pwrStatus === "critical").length;
   
 
-  // Bento Grid CSS
   const bentoGridStyles = {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
-    gridTemplateRows: '200px auto',
-    gap: '1rem',
+    gridTemplateRows: 'min-content auto', 
+    gap: '0.5rem', 
     gridTemplateAreas: `
       "overview stats efficiency"
       "productlist productlist productlist"
@@ -143,7 +142,7 @@ export default function PackagingWeight() {
   };
 
   const renderOverviewCard = () => (
-    <Card sectioned style={{ height: '200px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+    <Card sectioned>
       <BlockStack gap="400">
         <Text variant="headingMd" alignment="center">📦 Packaging Overview</Text>
         <Text variant="heading2xl" alignment="center">
@@ -157,7 +156,7 @@ export default function PackagingWeight() {
   );
 
   const renderStatsCard = () => (
-    <Card sectioned style={{ height: '300px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+    <Card sectioned>
       <BlockStack gap="300">
         <Text variant="headingMd" alignment="center">📊 PWR Distribution</Text>
         <BlockStack gap="200">
@@ -182,7 +181,7 @@ export default function PackagingWeight() {
     const excellentPercentage = totalProducts > 0 ? Math.round((excellentProducts / totalProducts) * 100) : 0;
     
     return (
-      <Card sectioned style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <Card sectioned>
         <BlockStack gap="300">
           <Text variant="headingMd" alignment="center">🎯 Efficiency Score</Text>
           <Text variant="heading2xl" alignment="center">
@@ -195,8 +194,6 @@ export default function PackagingWeight() {
       </Card>
     );
   };
-
-
 
   const renderProductListCard = () => (
     <Card>

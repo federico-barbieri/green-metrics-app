@@ -1,3 +1,4 @@
+// app/routes/app.locallyproduced.jsx
 import {
   Card,
   Layout,
@@ -6,7 +7,7 @@ import {
   ResourceList,
   ResourceItem,
   Badge,
-  Box,
+  InlineStack,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { useLoaderData } from "@remix-run/react";
@@ -56,7 +57,7 @@ export const loader = async ({ request }) => {
       return {
         ...edge.node,
         metafields,
-        locally_produced: locallyProducedValue, // add this boolean explicitly
+        locally_produced: locallyProducedValue, 
       };
     });
 
@@ -76,39 +77,37 @@ export default function LocallyProducedPage() {
   const { locallyProduced, internationallyProduced } = useLoaderData();
 
   const renderProductList = (products, labelColor, labelText) => (
-    <Box width="50%">
-      <Card title={labelText} sectioned>
-        <ResourceList
-          resourceName={{ singular: "product", plural: "products" }}
-          items={products}
-          renderItem={(item) => {
-            const { id, title, locally_produced } = item;
-            return (
-              <ResourceItem id={id}>
-                <div
-                  style={{
-                    gap: "1rem",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <Text variant="bodyMd" fontWeight="bold" as="h3">
-                    {title}{" "}
-                    <Badge tone={labelColor} status={labelColor}>
-                      {labelText}
-                    </Badge>
-                  </Text>
-                </div>
-                <LocallyProducedMetafieldEditor
-                  productId={id}
-                  locally_produced={locally_produced}
-                />
-              </ResourceItem>
-            );
-          }}
-        />
-      </Card>
-    </Box>
+    <Card title={labelText} sectioned>
+      <ResourceList
+        resourceName={{ singular: "product", plural: "products" }}
+        items={products}
+        renderItem={(item) => {
+          const { id, title, locally_produced } = item;
+          return (
+            <ResourceItem id={id}>
+              <div
+                style={{
+                  gap: "1rem",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <Text variant="bodyMd" fontWeight="bold" as="h3">
+                  {title}{" "}
+                  <Badge tone={labelColor} status={labelColor}>
+                    {labelText}
+                  </Badge>
+                </Text>
+              </div>
+              <LocallyProducedMetafieldEditor
+                productId={id}
+                locally_produced={locally_produced}
+              />
+            </ResourceItem>
+          );
+        }}
+      />
+    </Card>
   );
 
   return (
@@ -130,23 +129,26 @@ export default function LocallyProducedPage() {
             {internationallyProduced.length} internationally produced products.
           </Text>
         </Layout.Section>
+        
         <Layout.Section>
           <Text>
             Toggle the checkbox if your product's production place has changed.
           </Text>
         </Layout.Section>
 
-        {/* two halves, automatically 50% each */}
-        <Layout.Section oneHalf>
-          {renderProductList(locallyProduced, "success", "Locally Produced")}
-        </Layout.Section>
-
-        <Layout.Section oneHalf>
-          {renderProductList(
-            internationallyProduced,
-            "attention",
-            "Internationally Produced",
-          )}
+        <Layout.Section>
+          <InlineStack gap="400" align="start">
+            <div style={{ flex: 1 }}>
+              {renderProductList(locallyProduced, "success", "Locally Produced")}
+            </div>
+            <div style={{ flex: 1 }}>
+              {renderProductList(
+                internationallyProduced,
+                "attention",
+                "Internationally Produced",
+              )}
+            </div>
+          </InlineStack>
         </Layout.Section>
       </Layout>
     </Page>
