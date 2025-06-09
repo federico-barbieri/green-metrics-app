@@ -68,7 +68,6 @@ export default function CSVMetafieldImporter() {
     const warnings = [];
     const validatedData = [];
 
-    console.log("Starting CSV validation for", data.length, "rows");
 
     // Check for reasonable data size
     if (data.length > 1000) {
@@ -152,7 +151,6 @@ export default function CSVMetafieldImporter() {
       validatedData.push(validatedRow);
     });
 
-    console.log("Validation complete:", { errors: errors.length, warnings: warnings.length });
     return { errors, warnings, validatedData };
   }, []);
 
@@ -161,7 +159,6 @@ export default function CSVMetafieldImporter() {
     const file = event.target.files[0];
     if (!file) return;
 
-    console.log("Processing file:", file.name, "Size:", file.size, "Type:", file.type);
     
     // Security validation
     const fileErrors = validateFile(file);
@@ -186,7 +183,6 @@ export default function CSVMetafieldImporter() {
         return header.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_');
       },
       complete: (results) => {
-        console.log("CSV parsed:", results.data.length, "rows");
         
         if (results.errors.length > 0) {
           console.error("CSV parsing errors:", results.errors);
@@ -236,7 +232,6 @@ export default function CSVMetafieldImporter() {
     setProgress(0);
     setResults({ success: 0, errors: 0, total: csvData.length });
 
-    console.log("Starting CSV processing for", csvData.length, "products");
 
     const BATCH_SIZE = 5;
     const batches = [];
@@ -254,7 +249,6 @@ export default function CSVMetafieldImporter() {
 
     for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
       const batch = batches[batchIndex];
-      console.log(`Processing batch ${batchIndex + 1}/${batches.length}`);
 
       // Process batch in parallel
       const batchPromises = batch.map(async (row) => {
@@ -328,10 +322,7 @@ export default function CSVMetafieldImporter() {
 
     setIsProcessing(false);
     setCurrentStep('complete');
-    console.log("CSV processing complete!", { 
-      success: processResults.successCount, 
-      errors: processResults.errorCount 
-    });
+    
   };
 
   // RESET FUNCTION
@@ -344,7 +335,7 @@ export default function CSVMetafieldImporter() {
     setCurrentStep('upload');
   };
 
-  // CSV TEMPLATE GENERATOR (Enhanced)
+  // CSV TEMPLATE GENERATOR
   const downloadTemplate = () => {
     const template = [
       {
@@ -377,7 +368,7 @@ export default function CSVMetafieldImporter() {
     document.body.removeChild(a);
   };
 
-  // RENDER UPLOAD STEP (Enhanced)
+  // RENDER UPLOAD STEP
   const renderUploadStep = () => (
     <Card sectioned>
       <BlockStack gap="400">
@@ -453,7 +444,7 @@ export default function CSVMetafieldImporter() {
     </Card>
   );
 
-  // RENDER PREVIEW STEP (Enhanced)
+  // RENDER PREVIEW STEP
   const renderPreviewStep = () => (
     <Card sectioned>
       <BlockStack gap="400">

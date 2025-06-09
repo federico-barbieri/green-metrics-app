@@ -44,14 +44,14 @@ export async function generateSustainabilityReportPDF(reportData) {
         boldItalic: 'Helvetica-BoldOblique'
       };
       
-      const pageWidth = doc.page.width - 80; // Account for margins
+      const pageWidth = doc.page.width - 80; 
       const pageHeight = doc.page.height - 80;
       let currentY = 40;
       
-      // Utility function to check if we need a new page
+      // Fixed utility function to check if we need a new page
       function checkPageBreak(requiredHeight, forceNewPage = false) {
-        const availableSpace = pageHeight - currentY + 40; // Add some buffer
-        if (forceNewPage || requiredHeight > availableSpace) {
+        const availableSpace = pageHeight + 40 - currentY; 
+        if (forceNewPage || requiredHeight > availableSpace - 20) { 
           doc.addPage();
           currentY = 40;
           return true;
@@ -62,47 +62,42 @@ export async function generateSustainabilityReportPDF(reportData) {
       // Header Section with modern gradient design
       function createHeader() {
         // Main header background with gradient effect
-        const headerHeight = 140;
+        const headerHeight = 120; 
         
         // Primary background
         doc.rect(0, 0, doc.page.width, headerHeight)
            .fill(colors.primary);
         
-        // Gradient overlay effect using multiple rectangles
-        for (let i = 0; i < 20; i++) {
-          const opacity = 0.05 - (i * 0.002);
+        // Simplified gradient overlay effect
+        for (let i = 0; i < 10; i++) { 
+          const opacity = 0.05 - (i * 0.005);
           if (opacity > 0) {
-            doc.rect(0, headerHeight - 60 + (i * 2), doc.page.width, 2)
+            doc.rect(0, headerHeight - 40 + (i * 2), doc.page.width, 2)
                .fillOpacity(opacity)
                .fill(colors.white)
                .fillOpacity(1);
           }
         }
         
-        // Decorative elements
-        doc.circle(doc.page.width - 60, 30, 25)
+        // Single decorative element
+        doc.circle(doc.page.width - 60, 30, 20) 
            .fillOpacity(0.1)
            .fill(colors.white)
            .fillOpacity(1);
         
-        doc.circle(50, headerHeight - 30, 15)
-           .fillOpacity(0.15)
-           .fill(colors.white)
-           .fillOpacity(1);
-        
         // Header text with proper font handling
-        doc.fontSize(32)
+        doc.fontSize(28) 
            .fillColor(colors.white)
            .font(fonts.bold)
-           .text('SUSTAINABILITY', 40, 35, { 
+           .text('SUSTAINABILITY', 40, 30, { 
              width: pageWidth, 
              align: 'left' 
            });
         
-        doc.fontSize(32)
+        doc.fontSize(28) 
            .fillColor(colors.accent)
            .font(fonts.bold)
-           .text('REPORT', 40, 70, { 
+           .text('REPORT', 40, 60, { 
              width: pageWidth, 
              align: 'left' 
            });
@@ -112,7 +107,7 @@ export async function generateSustainabilityReportPDF(reportData) {
         doc.fontSize(14)
            .fillColor(colors.white)
            .font(fonts.regular)
-           .text(cleanStoreName, 40, 115, { 
+           .text(cleanStoreName, 40, 95, { 
              width: pageWidth - 100, 
              align: 'left' 
            });
@@ -122,97 +117,95 @@ export async function generateSustainabilityReportPDF(reportData) {
            .fillColor(colors.white)
            .fillOpacity(0.9)
            .font(fonts.regular)
-           .text(`Generated ${format(generatedAt, 'MMMM dd, yyyy')}`, 40, 130)
+           .text(`Generated ${format(generatedAt, 'MMMM dd, yyyy')}`, 40, 110)
            .fillOpacity(1);
         
-        currentY = headerHeight + 30;
+        currentY = headerHeight + 20; 
       }
       
-      // Enhanced Score Card
+      // Optimized Score Card
       function createScoreCard() {
-        const cardHeight = 120;
-        checkPageBreak(cardHeight + 20);
+        const cardHeight = 100; 
+        checkPageBreak(cardHeight + 15);
         
-        // Card background with shadow effect
-        doc.roundedRect(42, currentY + 2, pageWidth, cardHeight, 12)
-           .fillOpacity(0.1)
+        // Single shadow effect
+        doc.roundedRect(41, currentY + 1, pageWidth, cardHeight, 10)
+           .fillOpacity(0.05)
            .fill(colors.text)
            .fillOpacity(1);
         
-        doc.roundedRect(40, currentY, pageWidth, cardHeight, 12)
+        doc.roundedRect(40, currentY, pageWidth, cardHeight, 10)
            .fill(colors.white)
            .stroke(colors.border)
            .lineWidth(1);
         
-        // Score circle with enhanced design
-        const circleX = 130;
-        const circleY = currentY + 60;
-        const circleRadius = 40;
+        // Score circle with simplified design
+        const circleX = 120; 
+        const circleY = currentY + 50;
+        const circleRadius = 35; 
         const scoreColor = getScoreColor(sustainabilityScore, colors);
         
-        // Outer glow effect using multiple circles
-        for (let i = 5; i > 0; i--) {
-          doc.circle(circleX, circleY, circleRadius + i)
-             .fillOpacity(0.05)
-             .fill(scoreColor)
-             .fillOpacity(1);
-        }
+        // Single outer glow
+        doc.circle(circleX, circleY, circleRadius + 3)
+           .fillOpacity(0.1)
+           .fill(scoreColor)
+           .fillOpacity(1);
         
         // Main circle
         doc.circle(circleX, circleY, circleRadius)
            .fill(scoreColor);
         
         // Inner highlight
-        doc.circle(circleX - 8, circleY - 8, 8)
+        doc.circle(circleX - 6, circleY - 6, 6)
            .fillOpacity(0.3)
            .fill(colors.white)
            .fillOpacity(1);
         
         // Score text with better positioning
         const scoreText = sustainabilityScore.toString();
-        doc.fontSize(28)
+        doc.fontSize(24) 
            .fillColor(colors.white)
            .font(fonts.bold);
         
         const scoreWidth = doc.widthOfString(scoreText);
-        doc.text(scoreText, circleX - scoreWidth/2, circleY - 10);
+        doc.text(scoreText, circleX - scoreWidth/2, circleY - 8);
         
         // Score description with proper typography
-        doc.fontSize(24)
+        doc.fontSize(22) 
            .fillColor(colors.text)
            .font(fonts.regular)
-           .text('Sustainability Score', 200, currentY + 30);
+           .text('Sustainability Score', 180, currentY + 25);
         
         doc.fontSize(14)
            .fillColor(scoreColor)
            .font(fonts.bold)
-           .text(getScoreDescription(sustainabilityScore).toUpperCase(), 200, currentY + 58);
+           .text(getScoreDescription(sustainabilityScore).toUpperCase(), 180, currentY + 48);
         
         doc.fontSize(11)
            .fillColor(colors.textSecondary)
            .font(fonts.regular)
-           .text('Based on materials, packaging, delivery & local sourcing', 200, currentY + 80, { 
-             width: pageWidth - 180 
+           .text('Based on materials, packaging, delivery & local sourcing', 180, currentY + 68, { 
+             width: pageWidth - 160 
            });
         
-        currentY += cardHeight + 40;
+        currentY += cardHeight + 25; 
       }
       
-      // Enhanced Metrics Section
+      // Optimized Metrics Section
       function createMetricsSection() {
-        checkPageBreak(60);
+        checkPageBreak(50); 
         
         // Section header with underline
-        doc.fontSize(20)
+        doc.fontSize(18) 
            .fillColor(colors.text)
            .font(fonts.bold)
            .text('Performance Metrics', 40, currentY);
         
         // Decorative underline
-        doc.rect(40, currentY + 25, 180, 2)
+        doc.rect(40, currentY + 22, 160, 2)
            .fill(colors.accent);
         
-        currentY += 45;
+        currentY += 35; 
         
         const metricsData = [
           { 
@@ -221,7 +214,7 @@ export async function generateSustainabilityReportPDF(reportData) {
             target: '70%+',
             status: current.sustainableMaterialsPercent >= 70 ? 'good' : 
                    current.sustainableMaterialsPercent >= 40 ? 'warning' : 'poor',
-            icon: 'M' // Using letter M for Materials
+            icon: 'M'
           },
           { 
             label: 'Local Products', 
@@ -229,7 +222,7 @@ export async function generateSustainabilityReportPDF(reportData) {
             target: '40%+',
             status: current.localProductsPercent >= 40 ? 'good' : 
                    current.localProductsPercent >= 20 ? 'warning' : 'poor',
-            icon: 'L' // Using letter L for Local
+            icon: 'L'
           },
           { 
             label: 'Packaging Efficiency', 
@@ -237,7 +230,7 @@ export async function generateSustainabilityReportPDF(reportData) {
             target: '<1.2:1',
             status: current.avgPackagingRatio <= 1.2 ? 'good' : 
                    current.avgPackagingRatio <= 1.5 ? 'warning' : 'poor',
-            icon: 'P' // Using letter P for Packaging
+            icon: 'P'
           },
           { 
             label: 'Delivery Distance', 
@@ -245,30 +238,30 @@ export async function generateSustainabilityReportPDF(reportData) {
             target: '<40 km',
             status: current.avgDeliveryDistanceKm <= 40 ? 'good' : 
                    current.avgDeliveryDistanceKm <= 60 ? 'warning' : 'poor',
-            icon: 'D' // Using letter D for Delivery
+            icon: 'D'
           }
         ];
         
-        const cardWidth = (pageWidth - 20) / 2;
-        const cardHeight = 100;
+        const cardWidth = (pageWidth - 15) / 2;
+        const cardHeight = 85; 
         
         for (let i = 0; i < metricsData.length; i += 2) {
-          checkPageBreak(cardHeight + 20);
+          checkPageBreak(cardHeight + 15);
           
           // Draw two cards per row
           for (let j = 0; j < 2 && i + j < metricsData.length; j++) {
             const metric = metricsData[i + j];
-            const x = 40 + j * (cardWidth + 20);
+            const x = 40 + j * (cardWidth + 15);
             const y = currentY;
             
-            // Card shadow
-            doc.roundedRect(x + 1, y + 1, cardWidth, cardHeight, 8)
-               .fillOpacity(0.05)
+            // Single card shadow
+            doc.roundedRect(x + 1, y + 1, cardWidth, cardHeight, 6)
+               .fillOpacity(0.03)
                .fill(colors.text)
                .fillOpacity(1);
             
             // Card background and border
-            doc.roundedRect(x, y, cardWidth, cardHeight, 8)
+            doc.roundedRect(x, y, cardWidth, cardHeight, 6)
                .fill(colors.white)
                .stroke(colors.border)
                .lineWidth(1);
@@ -277,80 +270,81 @@ export async function generateSustainabilityReportPDF(reportData) {
             const statusColor = metric.status === 'good' ? colors.success : 
                                metric.status === 'warning' ? colors.warning : colors.danger;
             
-            doc.roundedRect(x, y, cardWidth, 6, 3)
+            doc.roundedRect(x, y, cardWidth, 4, 2) 
                .fill(statusColor);
             
             // Metric value
-            doc.fontSize(24)
+            doc.fontSize(20) 
                .fillColor(statusColor)
                .font(fonts.bold)
-               .text(metric.value, x + 15, y + 20);
+               .text(metric.value, x + 12, y + 15);
             
-            // Icon using colored letter instead of bullet
-            doc.fontSize(12)
+            // Icon using colored letter
+            doc.fontSize(10)
                .fillColor(colors.white)
                .font(fonts.bold);
             
             // Create circular background for icon
-            doc.circle(x + cardWidth - 25, y + 25, 10)
+            doc.circle(x + cardWidth - 20, y + 20, 8)
                .fill(statusColor);
             
             const iconWidth = doc.widthOfString(metric.icon);
-            doc.text(metric.icon, x + cardWidth - 25 - iconWidth/2, y + 20);
+            doc.text(metric.icon, x + cardWidth - 20 - iconWidth/2, y + 16);
             
             // Label
-            doc.fontSize(12)
+            doc.fontSize(11) 
                .fillColor(colors.text)
                .font(fonts.bold)
-               .text(metric.label, x + 15, y + 55);
+               .text(metric.label, x + 12, y + 45);
             
             // Target
-            doc.fontSize(10)
+            doc.fontSize(9) 
                .fillColor(colors.textSecondary)
                .font(fonts.regular)
-               .text(`Target: ${metric.target}`, x + 15, y + 75);
+               .text(`Target: ${metric.target}`, x + 12, y + 62);
             
             // Status indicator dot
-            doc.circle(x + cardWidth - 15, y + 75, 4)
+            doc.circle(x + cardWidth - 12, y + 65, 3)
                .fill(statusColor);
           }
           
-          currentY += cardHeight + 20;
+          currentY += cardHeight + 15; 
         }
         
-        currentY += 20;
+        currentY += 15; 
       }
       
-      // Enhanced Recommendations Section
+      // Optimized Recommendations Section
       function createRecommendationsSection() {
-        checkPageBreak(60);
+        checkPageBreak(50); 
         
         // Section header
-        doc.fontSize(20)
+        doc.fontSize(18) 
            .fillColor(colors.text)
            .font(fonts.bold)
            .text('Recommendations', 40, currentY);
         
         // Decorative underline
-        doc.rect(40, currentY + 25, 160, 2)
+        doc.rect(40, currentY + 22, 140, 2)
            .fill(colors.accent);
         
-        currentY += 45;
+        currentY += 35; 
         
         const recommendations = generateRecommendations(current);
         
-        recommendations.forEach((rec, index) => {
-          const recHeight = 90;
-          checkPageBreak(recHeight + 15);
+        // Limit to 4 recommendations to ensure they fit
+        recommendations.slice(0, 4).forEach((rec, index) => {
+          const recHeight = 75; 
+          checkPageBreak(recHeight + 10);
           
-          // Card shadow
-          doc.roundedRect(41, currentY + 1, pageWidth, recHeight, 10)
-             .fillOpacity(0.05)
+          // Single shadow
+          doc.roundedRect(41, currentY + 1, pageWidth, recHeight, 8)
+             .fillOpacity(0.03)
              .fill(colors.text)
              .fillOpacity(1);
           
           // Recommendation card
-          doc.roundedRect(40, currentY, pageWidth, recHeight, 10)
+          doc.roundedRect(40, currentY, pageWidth, recHeight, 8)
              .fill(colors.white)
              .stroke(colors.border)
              .lineWidth(1);
@@ -360,7 +354,7 @@ export async function generateSustainabilityReportPDF(reportData) {
                                rec.priority === 'medium' ? colors.warning : colors.success;
           
           // Priority bar
-          doc.rect(40, currentY, 6, recHeight)
+          doc.rect(40, currentY, 4, recHeight) 
              .fill(priorityColor);
           
           // Priority badge
@@ -369,70 +363,71 @@ export async function generateSustainabilityReportPDF(reportData) {
              .fillColor(colors.white)
              .font(fonts.bold);
           
-          const badgeWidth = doc.widthOfString(priorityText) + 12;
+          const badgeWidth = doc.widthOfString(priorityText) + 10;
           
-          doc.roundedRect(pageWidth - badgeWidth + 25, currentY + 15, badgeWidth, 16, 8)
+          doc.roundedRect(pageWidth - badgeWidth + 25, currentY + 12, badgeWidth, 14, 6)
              .fill(priorityColor);
           
-          doc.text(priorityText, pageWidth - badgeWidth + 31, currentY + 19);
+          doc.text(priorityText, pageWidth - badgeWidth + 30, currentY + 16);
           
           // Recommendation content
-          doc.fontSize(14)
+          doc.fontSize(13) 
              .fillColor(colors.text)
              .font(fonts.bold)
-             .text(rec.title, 60, currentY + 20, { width: pageWidth - 100 });
+             .text(rec.title, 55, currentY + 15, { width: pageWidth - 85 });
           
-          doc.fontSize(11)
+          doc.fontSize(10) 
              .fillColor(colors.textSecondary)
              .font(fonts.regular)
-             .text(rec.description, 60, currentY + 42, { 
-               width: pageWidth - 100,
+             .text(rec.description, 55, currentY + 35, { 
+               width: pageWidth - 85,
                lineGap: 2
              });
           
-          currentY += recHeight + 15;
+          currentY += recHeight + 10; 
         });
         
-        currentY += 20;
+        currentY += 15; 
       }
       
-      // Enhanced Footer (only add if there's enough space on current page)
+      // Fixed Footer
       function createFooter() {
-        const footerHeight = 60;
+        const footerHeight = 50; 
+        
+        // Always go to a new page for footer if we're too close to bottom
+        if (currentY > pageHeight - footerHeight - 20) {
+          doc.addPage();
+        }
+        
         const footerY = doc.page.height - footerHeight;
         
-        // Only add footer if we have space on current page
-        if (currentY <= footerY - 20) {
-          // Footer background
-          doc.rect(0, footerY, doc.page.width, footerHeight)
-             .fill(colors.primary);
-          
-          // Decorative elements
-          doc.circle(60, footerY + 30, 20)
-             .fillOpacity(0.1)
-             .fill(colors.white)
-             .fillOpacity(1);
-          
-          // Footer content
-          doc.fontSize(12)
-             .fillColor(colors.white)
-             .font(fonts.bold)
-             .text('Green Metrics', 40, footerY + 15, { 
-               width: pageWidth, 
-               align: 'center' 
-             });
-          
-          doc.fontSize(10)
-             .fillColor(colors.white)
-             .fillOpacity(0.8)
-             .font(fonts.regular)
-             .text('Empowering Sustainable Commerce - Insights for Environmental Impact', 
-                   40, footerY + 32, { 
-                     width: pageWidth, 
-                     align: 'center' 
-                   })
-             .fillOpacity(1);
-        }
+        // Footer background
+        doc.rect(0, footerY, doc.page.width, footerHeight)
+           .fill(colors.primary);
+        
+        // Single decorative element
+        doc.circle(60, footerY + 25, 15)
+           .fillOpacity(0.1)
+           .fill(colors.white)
+           .fillOpacity(1);
+        
+        // Footer content
+        doc.fontSize(12)
+           .fillColor(colors.white)
+           .font(fonts.bold)
+           .text('Green Metrics', 40, footerY + 12, { 
+             width: pageWidth, 
+             align: 'center' 
+           });
+        
+        doc.fontSize(10)
+           .fillColor(colors.white)
+           .font(fonts.regular)
+           .text('Empowering Sustainable Commerce - Insights for Environmental Impact', 
+                 40, footerY + 28, { 
+                   width: pageWidth, 
+                   align: 'center' 
+                 });
       }
       
       // Generate the complete report
@@ -442,6 +437,8 @@ export async function generateSustainabilityReportPDF(reportData) {
         createMetricsSection();
         createRecommendationsSection();
         createFooter();
+        
+        
         
         doc.end();
       } catch (error) {
@@ -476,7 +473,7 @@ function generateRecommendations(metrics) {
   if (metrics.sustainableMaterialsPercent < 50) {
     recommendations.push({
       title: 'Increase Sustainable Materials Usage',
-      description: `Currently at ${metrics.sustainableMaterialsPercent.toFixed(1)}%. Partner with certified sustainable suppliers and consider recycled or organic alternatives. This will significantly boost your environmental score.`,
+      description: `Currently at ${metrics.sustainableMaterialsPercent.toFixed(1)}%. Partner with certified sustainable suppliers and consider recycled or organic alternatives.`,
       priority: 'high'
     });
   }
@@ -484,7 +481,7 @@ function generateRecommendations(metrics) {
   if (metrics.localProductsPercent < 30) {
     recommendations.push({
       title: 'Expand Local Sourcing Network',
-      description: `Currently at ${metrics.localProductsPercent.toFixed(1)}%. Build relationships with local manufacturers and suppliers to reduce carbon footprint while supporting your local economy.`,
+      description: `Currently at ${metrics.localProductsPercent.toFixed(1)}%. Build relationships with local manufacturers and suppliers to reduce carbon footprint.`,
       priority: 'medium'
     });
   }
@@ -492,7 +489,7 @@ function generateRecommendations(metrics) {
   if (metrics.avgPackagingRatio > 1.5) {
     recommendations.push({
       title: 'Optimize Packaging Design',
-      description: `Current ratio: ${metrics.avgPackagingRatio.toFixed(2)}:1. Implement minimal packaging strategies using lightweight, biodegradable materials to improve efficiency and reduce waste.`,
+      description: `Current ratio: ${metrics.avgPackagingRatio.toFixed(2)}:1. Implement minimal packaging strategies using lightweight, biodegradable materials.`,
       priority: 'high'
     });
   }
@@ -500,7 +497,7 @@ function generateRecommendations(metrics) {
   if (metrics.avgDeliveryDistanceKm > 50) {
     recommendations.push({
       title: 'Reduce Delivery Distances',
-      description: `Current average: ${metrics.avgDeliveryDistanceKm.toFixed(1)} km. Consider regional fulfillment centers, local distribution partnerships, or consolidated shipping options.`,
+      description: `Current average: ${metrics.avgDeliveryDistanceKm.toFixed(1)} km. Consider regional fulfillment centers or consolidated shipping options.`,
       priority: 'medium'
     });
   }
@@ -509,7 +506,7 @@ function generateRecommendations(metrics) {
   if (metrics.sustainableMaterialsPercent >= 70 && recommendations.length < 2) {
     recommendations.push({
       title: 'Maintain Materials Excellence',
-      description: 'Your sustainable materials usage is exemplary. Continue working with current suppliers and explore innovative eco-friendly materials to stay ahead of the curve.',
+      description: 'Your sustainable materials usage is exemplary. Continue working with current suppliers and explore innovative eco-friendly materials.',
       priority: 'low'
     });
   }
@@ -517,7 +514,7 @@ function generateRecommendations(metrics) {
   if (metrics.localProductsPercent >= 40 && recommendations.length < 2) {
     recommendations.push({
       title: 'Local Sourcing Leadership',
-      description: 'Your local sourcing strategy is strong. Consider mentoring other businesses or creating case studies to share your successful approach.',
+      description: 'Your local sourcing strategy is strong. Consider mentoring other businesses or creating case studies to share your approach.',
       priority: 'low'
     });
   }
@@ -531,5 +528,5 @@ function generateRecommendations(metrics) {
     });
   }
   
-  return recommendations.slice(0, 6); // Allow up to 6 recommendations for comprehensive guidance
+  return recommendations.slice(0, 4); 
 }

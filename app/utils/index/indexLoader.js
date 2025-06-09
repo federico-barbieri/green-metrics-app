@@ -87,12 +87,11 @@ export const loader = async ({ request }) => {
   let missingProducts = [];
 
   try {
-    console.log("🔍 Fetching products to check sync status...");
     
     let hasNextPage = true;
     let endCursor = null;
     let allShopifyProducts = [];
-    const maxProductsToFetch = 1000; // Reasonable limit to prevent timeouts
+    const maxProductsToFetch = 1000; 
 
     const shopifyProductsQuery = `
       query GetAllProducts($cursor: String) {
@@ -124,7 +123,7 @@ export const loader = async ({ request }) => {
         hasNextPage = data.data.products.pageInfo.hasNextPage;
         endCursor = data.data.products.pageInfo.endCursor;
       } else {
-        console.error("❌ Error fetching products:", data.errors);
+        console.error("Error fetching products:", data.errors);
         break;
       }
     }
@@ -132,7 +131,6 @@ export const loader = async ({ request }) => {
     shopifyProductCount = allShopifyProducts.length;
     const hasMoreProducts = hasNextPage; // True if there are more products beyond our limit
 
-    console.log(`📊 Shopify products (fetched): ${shopifyProductCount}${hasMoreProducts ? '+' : ''}, DB products: ${store._count?.products || 0}`);
 
     // Get all DB product IDs for comparison
     const dbProducts = await prisma.product.findMany({
@@ -157,22 +155,18 @@ export const loader = async ({ request }) => {
     // Determine sync status
     if (missingProducts.length > 0) {
       syncStatus = "needs_sync";
-      console.log(`🔄 Found ${missingProducts.length} missing products in DB`);
     } else if (shopifyProductCount < (store._count?.products || 0)) {
       // More products in DB than Shopify (products were deleted)
       syncStatus = "needs_cleanup";
-      console.log("🧹 Some products exist in DB but not in Shopify");
     } else if (hasMoreProducts && shopifyProductCount >= (store._count?.products || 0)) {
       // There might be more products in Shopify that we haven't fetched
       syncStatus = "might_need_sync";
-      console.log("⚠️ There might be more products in Shopify beyond our fetch limit");
     } else {
       syncStatus = "synced";
-      console.log("✅ Products are in sync");
     }
 
   } catch (error) {
-    console.error("❌ Error checking product sync:", error);
+    console.error("Error checking product sync:", error);
     syncStatus = "error";
     shopifyProductCount = 0;
     missingProducts = [];
@@ -195,7 +189,7 @@ export const loader = async ({ request }) => {
       await updateStoreAggregatedMetrics(store.id);
       
     } catch (metricsError) {
-      console.error("❌ Error updating metrics:", metricsError);
+      console.error("Error updating metrics:", metricsError);
     }
   }
 

@@ -102,7 +102,7 @@ function checkAccess(request) {
 
 // This is our metrics endpoint that Prometheus will scrape
 export const loader = async ({ request }) => {
-  // 🔒 SECURITY CHECK - Block public access
+  // SECURITY CHECK - Block public access
   if (!checkAccess(request)) {
     throw new Response('Not Found', { status: 404 });
   }

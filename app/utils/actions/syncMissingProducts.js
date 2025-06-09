@@ -20,7 +20,6 @@ export const handleSyncMissingProducts = async ({ admin, session }) => {
   }
 
   try {
-    console.log("🔄 Starting sync of missing products...");
 
     // Get all DB product IDs for comparison
     const dbProducts = await prisma.product.findMany({
@@ -85,7 +84,6 @@ export const handleSyncMissingProducts = async ({ admin, session }) => {
           continue;
         }
 
-        console.log(`➕ Adding missing product: ${shopifyProduct.title}`);
 
         // Process metafields (same logic as import_products)
         const metafields = {};
@@ -210,7 +208,6 @@ export const handleSyncMissingProducts = async ({ admin, session }) => {
     // Update store-level metrics after sync
     await updateStoreAggregatedMetrics(store.id);
 
-    console.log(`✅ Sync complete: ${syncCount} products added`);
 
     return json({
       action: "sync_missing_products",
@@ -221,7 +218,7 @@ export const handleSyncMissingProducts = async ({ admin, session }) => {
     });
 
   } catch (error) {
-    console.error("❌ Error syncing missing products:", error);
+    console.error("Error syncing missing products:", error);
     return json({
       action: "sync_missing_products",
       success: false,

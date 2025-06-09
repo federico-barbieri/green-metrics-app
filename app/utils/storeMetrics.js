@@ -17,7 +17,7 @@ export async function updateStoreAggregatedMetrics(storeId) {
         products: {
           where: {
             // Only include active products (not deleted)
-            // You can add a "deleted" field later if needed
+            
           },
         },
       },
