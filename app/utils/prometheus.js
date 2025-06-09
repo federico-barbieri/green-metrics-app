@@ -1,7 +1,7 @@
 // app/utils/prometheus.js
 
 export class PrometheusClient {
-    constructor(prometheusUrl = process.env.PROMETHEUS_URL || 'https://prometheus.sustainablefashionmetrics.net') {
+    constructor(prometheusUrl = process.env.PROMETHEUS_URL || 'http://prometheus:9090') {
       this.baseUrl = prometheusUrl;
     }
   
