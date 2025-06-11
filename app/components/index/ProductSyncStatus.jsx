@@ -30,7 +30,6 @@ export default function ProductSyncStatus({ loaderData }) {
       !syncFetcher.data;
 
     if (shouldAutoSync) {
-      console.log(`🔄 Auto-syncing ${missingProductsCount} missing products...`);
       syncFetcher.submit({ action: "sync_missing_products" }, { method: "POST" });
     }
   }, [syncStatus, missingProductsCount, isSyncing, syncFetcher]);

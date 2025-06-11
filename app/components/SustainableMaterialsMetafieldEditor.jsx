@@ -45,7 +45,6 @@ export default function SustainableMaterialsMetafieldEditor({
 
   // Log initial values for debugging
   useEffect(() => {
-    console.log(`🔍 Component initialized for ${productId}:`);
   }, [productId]);
 
   // Handle input changes with real-time validation
@@ -56,7 +55,6 @@ export default function SustainableMaterialsMetafieldEditor({
     const validated = validateAndClamp(value);
     setSustainableDecimal(validated);
     
-    console.log(`📝 Input: "${value}" → Validated: ${validated}`);
   };
 
   // Handle blur (when user finishes editing)
@@ -72,7 +70,6 @@ export default function SustainableMaterialsMetafieldEditor({
       // Final validation before saving
       const finalValue = validateAndClamp(sustainableDecimal);
       
-      console.log(`💾 Saving: ${finalValue} (clamped between 0.01-1.00)`);
 
       const res = await fetch("/api/update-sustainable-materials", {
         method: "POST",
@@ -100,7 +97,6 @@ export default function SustainableMaterialsMetafieldEditor({
         setToastMessage(`Saved: ${(savedValue * 100).toFixed(0)}% sustainable materials`);
         setToastActive(true);
         
-        console.log(`✅ Successfully saved: ${savedValue} (${(savedValue * 100).toFixed(1)}%)`);
       }
     } catch (err) {
       console.error("Error saving:", err);

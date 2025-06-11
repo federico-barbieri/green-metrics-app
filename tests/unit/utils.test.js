@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-// Simple function to test (we'll add this to your utils)
+// Simple function to test 
 function calculateSustainabilityPercentage(decimal) {
   if (typeof decimal !== "number" || decimal < 0 || decimal > 1) {
     return 0;
