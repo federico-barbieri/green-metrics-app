@@ -205,7 +205,6 @@ export const action = async ({ request }) => {
     }
 
     const processingTime = Date.now() - startTime;
-    console.log(` [${requestId}] Product UPDATE webhook processing completed successfully in ${processingTime}ms`);
     
     return new Response(JSON.stringify({ 
       success: true, 

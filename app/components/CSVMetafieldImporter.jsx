@@ -449,7 +449,7 @@ export default function CSVMetafieldImporter() {
     <Card sectioned>
       <BlockStack gap="400">
         <InlineStack justify="space-between" align="center">
-          <Text variant="headingLg">📊 CSV Preview & Validation</Text>
+          <Text variant="headingLg">CSV Preview & Validation</Text>
           <Button onClick={resetImporter} variant="tertiary">← Start Over</Button>
         </InlineStack>
 
@@ -483,7 +483,7 @@ export default function CSVMetafieldImporter() {
 
         {/* Validation Messages */}
         {validationResults.errors.length > 0 && (
-          <Banner title="❌ Validation Errors (Must Fix)" tone="critical">
+          <Banner title="Validation Errors (Must Fix)" tone="critical">
             <BlockStack gap="100">
               {validationResults.errors.slice(0, 10).map((error, index) => (
                 <Text key={index} variant="bodySm">{error}</Text>
@@ -496,7 +496,7 @@ export default function CSVMetafieldImporter() {
         )}
 
         {validationResults.warnings.length > 0 && (
-          <Banner title="⚠️ Validation Warnings (Will Auto-Fix)" tone="warning">
+          <Banner title="Validation Warnings (Will Auto-Fix)" tone="warning">
             <BlockStack gap="100">
               {validationResults.warnings.slice(0, 5).map((warning, index) => (
                 <Text key={index} variant="bodySm">{warning}</Text>

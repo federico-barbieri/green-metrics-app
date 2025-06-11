@@ -10,17 +10,12 @@ export const action = async ({ request }) => {
   const startTime = Date.now();
   const requestId = Math.random().toString(36).substring(7);
   
-  console.log(`[${requestId}] CSV import request started`);
 
   try {
     const { admin, session } = await authenticate.admin(request);
     const rowData = await request.json();
 
-    console.log(`[${requestId}] Processing row:`, {
-      product_id: rowData.product_id,
-      product_title: rowData.product_title || 'N/A',
-      rowNumber: rowData._rowNumber
-    });
+   
 
     const validateAndClamp = (value, fieldName, min = 0.01, max = 1.00) => {
       if (value === undefined || value === null || value === '') return null;
@@ -31,7 +26,6 @@ export const action = async ({ request }) => {
       // Convert percentage to decimal if needed (90 → 0.90)
       if (num > 1 && num <= 100 && fieldName === 'sustainable_materials') {
         num = num / 100;
-        console.log(`[${requestId}] Converted percentage ${value} → ${num} for ${fieldName}`);
       }
       
       // Clamp to valid range
@@ -63,7 +57,6 @@ export const action = async ({ request }) => {
     }
 
     // VALIDATE PRODUCT EXISTS IN SHOPIFY
-    console.log(`[${requestId}] Checking if product exists: ${productId}`);
     
     const productQuery = `
       query getProduct($id: ID!) {
@@ -89,7 +82,6 @@ export const action = async ({ request }) => {
     }
 
     const productTitle = productData.data.product.title;
-    console.log(`[${requestId}] Product found: "${productTitle}"`);
 
     // PROCESS METAFIELDS
     const metafieldsToUpdate = [];
@@ -106,7 +98,6 @@ export const action = async ({ request }) => {
           value: sustainableValue.toString()
         });
         processedMetafields.sustainableMaterials = sustainableValue;
-        console.log(`[${requestId}] sustainable_materials: ${sustainableValue}`);
       }
     }
 
@@ -121,7 +112,6 @@ export const action = async ({ request }) => {
         value: isLocal.toString()
       });
       processedMetafields.isLocallyProduced = isLocal;
-      console.log(`[${requestId}] locally_produced: ${isLocal}`);
     }
 
     // Process packaging_weight
@@ -135,7 +125,6 @@ export const action = async ({ request }) => {
           value: packagingWeight.toString()
         });
         processedMetafields.packagingWeight = packagingWeight;
-        console.log(`[${requestId}] packaging_weight: ${packagingWeight}kg`);
       }
     }
 
@@ -150,14 +139,12 @@ export const action = async ({ request }) => {
           value: productWeight.toString()
         });
         processedMetafields.productWeight = productWeight;
-        console.log(`[${requestId}] product_weight: ${productWeight}kg`);
       }
     }
 
     // Calculate packaging ratio if both weights are available
     if (processedMetafields.packagingWeight && processedMetafields.productWeight && processedMetafields.productWeight > 0) {
       processedMetafields.packagingRatio = processedMetafields.packagingWeight / processedMetafields.productWeight;
-      console.log(`[${requestId}] Calculated packaging ratio: ${processedMetafields.packagingRatio}`);
     }
 
     if (metafieldsToUpdate.length === 0) {
@@ -169,7 +156,6 @@ export const action = async ({ request }) => {
     }
 
     // UPDATE METAFIELDS IN SHOPIFY
-    console.log(`[${requestId}] Updating ${metafieldsToUpdate.length} metafields in Shopify...`);
 
     const updateMutation = `
       mutation updateProductMetafields($input: ProductInput!) {
@@ -207,10 +193,8 @@ export const action = async ({ request }) => {
       }, { status: 400 });
     }
 
-    console.log(`[${requestId}] Shopify metafields updated successfully`);
 
     // UPDATE LOCAL DATABASE
-    console.log(`[${requestId}] Updating local database...`);
 
     const existingProduct = await prisma.product.findFirst({
       where: {
@@ -231,7 +215,6 @@ export const action = async ({ request }) => {
           updatedAt: new Date(),
         },
       });
-      console.log(`[${requestId}] Updated existing product in database`);
     } else {
       // Create new product record
       updatedProduct = await prisma.product.create({
@@ -246,21 +229,17 @@ export const action = async ({ request }) => {
           packagingRatio: processedMetafields.packagingRatio || 0,
         },
       });
-      console.log(`[${requestId}] Created new product in database`);
     }
 
     // UPDATE PROMETHEUS METRICS
-    console.log(`[${requestId}] Updating Prometheus metrics...`);
     try {
       await updateProductMetrics(updatedProduct);
-      console.log(`[${requestId}] Prometheus metrics updated`);
     } catch (metricsError) {
       console.error(`[${requestId}] Metrics update failed:`, metricsError);
       // Don't fail the whole request for metrics errors
     }
 
     const processingTime = Date.now() - startTime;
-    console.log(`[${requestId}] CSV row processed successfully in ${processingTime}ms`);
 
     return json({
       success: true,

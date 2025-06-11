@@ -10,7 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Original Session model from Shopify - unchanged
+// Original Session model from Shopify
 model Session {
   id            String    @id
   shop          String
@@ -35,7 +35,7 @@ model Store {
   name                String?
   
   // Store sustainability metrics
-  avgDeliveryDistance Float?     // Store the calculated average delivery distance
+  avgDeliveryDistance Float?   
   
   // Warehouse/deposit location coordinates
   warehouseLatitude   Float?
@@ -71,14 +71,14 @@ model Product {
   
   // Relations
   store                 Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  metricsHistory        ProductMetricsHistory[]  // NEW: Historical tracking
+  metricsHistory        ProductMetricsHistory[]  
 
   // A product ID should be unique within a store
   @@unique([shopifyProductId, storeId])
   @@index([storeId])
 }
 
-// NEW: Historical tracking of all product metric changes
+// Historical tracking of all product metric changes
 model ProductMetricsHistory {
   id                    String    @id @default(uuid())
   productId             String

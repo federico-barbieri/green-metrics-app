@@ -2,7 +2,7 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-// Mock your metrics utilities (we'll test the real ones)
+// Mock your metrics utilities
 const mockUpdateProductMetrics = vi.fn();
 const mockRecordProductMetricsHistory = vi.fn();
 
@@ -11,7 +11,7 @@ vi.mock("~/utils/metrics", () => ({
   recordProductMetricsHistory: mockRecordProductMetricsHistory,
 }));
 
-// Test your actual sustainability calculations
+// Test the actual sustainability calculations
 describe("Sustainability Calculations", () => {
   describe("Packaging Ratio Calculation", () => {
     it("calculates packaging ratio correctly", () => {
