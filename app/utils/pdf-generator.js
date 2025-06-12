@@ -313,82 +313,7 @@ export async function generateSustainabilityReportPDF(reportData) {
         
         currentY += 15; 
       }
-      
-      // Optimized Recommendations Section
-      function createRecommendationsSection() {
-        checkPageBreak(50); 
-        
-        // Section header
-        doc.fontSize(18) 
-           .fillColor(colors.text)
-           .font(fonts.bold)
-           .text('Recommendations', 40, currentY);
-        
-        // Decorative underline
-        doc.rect(40, currentY + 22, 140, 2)
-           .fill(colors.accent);
-        
-        currentY += 35; 
-        
-        const recommendations = generateRecommendations(current);
-        
-        // Limit to 4 recommendations to ensure they fit
-        recommendations.slice(0, 4).forEach((rec, index) => {
-          const recHeight = 75; 
-          checkPageBreak(recHeight + 10);
-          
-          // Single shadow
-          doc.roundedRect(41, currentY + 1, pageWidth, recHeight, 8)
-             .fillOpacity(0.03)
-             .fill(colors.text)
-             .fillOpacity(1);
-          
-          // Recommendation card
-          doc.roundedRect(40, currentY, pageWidth, recHeight, 8)
-             .fill(colors.white)
-             .stroke(colors.border)
-             .lineWidth(1);
-          
-          // Priority indicator
-          const priorityColor = rec.priority === 'high' ? colors.danger : 
-                               rec.priority === 'medium' ? colors.warning : colors.success;
-          
-          // Priority bar
-          doc.rect(40, currentY, 4, recHeight) 
-             .fill(priorityColor);
-          
-          // Priority badge
-          const priorityText = rec.priority.toUpperCase();
-          doc.fontSize(8)
-             .fillColor(colors.white)
-             .font(fonts.bold);
-          
-          const badgeWidth = doc.widthOfString(priorityText) + 10;
-          
-          doc.roundedRect(pageWidth - badgeWidth + 25, currentY + 12, badgeWidth, 14, 6)
-             .fill(priorityColor);
-          
-          doc.text(priorityText, pageWidth - badgeWidth + 30, currentY + 16);
-          
-          // Recommendation content
-          doc.fontSize(13) 
-             .fillColor(colors.text)
-             .font(fonts.bold)
-             .text(rec.title, 55, currentY + 15, { width: pageWidth - 85 });
-          
-          doc.fontSize(10) 
-             .fillColor(colors.textSecondary)
-             .font(fonts.regular)
-             .text(rec.description, 55, currentY + 35, { 
-               width: pageWidth - 85,
-               lineGap: 2
-             });
-          
-          currentY += recHeight + 10; 
-        });
-        
-        currentY += 15; 
-      }
+            
       
       // Fixed Footer
       function createFooter() {
@@ -435,7 +360,6 @@ export async function generateSustainabilityReportPDF(reportData) {
         createHeader();
         createScoreCard();
         createMetricsSection();
-        createRecommendationsSection();
         createFooter();
         
         
@@ -465,68 +389,4 @@ function getScoreDescription(score) {
   if (score >= 60) return 'Good';
   if (score >= 40) return 'Fair';
   return 'Needs Improvement';
-}
-
-function generateRecommendations(metrics) {
-  const recommendations = [];
-  
-  if (metrics.sustainableMaterialsPercent < 50) {
-    recommendations.push({
-      title: 'Increase Sustainable Materials Usage',
-      description: `Currently at ${metrics.sustainableMaterialsPercent.toFixed(1)}%. Partner with certified sustainable suppliers and consider recycled or organic alternatives.`,
-      priority: 'high'
-    });
-  }
-  
-  if (metrics.localProductsPercent < 30) {
-    recommendations.push({
-      title: 'Expand Local Sourcing Network',
-      description: `Currently at ${metrics.localProductsPercent.toFixed(1)}%. Build relationships with local manufacturers and suppliers to reduce carbon footprint.`,
-      priority: 'medium'
-    });
-  }
-  
-  if (metrics.avgPackagingRatio > 1.5) {
-    recommendations.push({
-      title: 'Optimize Packaging Design',
-      description: `Current ratio: ${metrics.avgPackagingRatio.toFixed(2)}:1. Implement minimal packaging strategies using lightweight, biodegradable materials.`,
-      priority: 'high'
-    });
-  }
-  
-  if (metrics.avgDeliveryDistanceKm > 50) {
-    recommendations.push({
-      title: 'Reduce Delivery Distances',
-      description: `Current average: ${metrics.avgDeliveryDistanceKm.toFixed(1)} km. Consider regional fulfillment centers or consolidated shipping options.`,
-      priority: 'medium'
-    });
-  }
-  
-  // Add positive reinforcement for good performance
-  if (metrics.sustainableMaterialsPercent >= 70 && recommendations.length < 2) {
-    recommendations.push({
-      title: 'Maintain Materials Excellence',
-      description: 'Your sustainable materials usage is exemplary. Continue working with current suppliers and explore innovative eco-friendly materials.',
-      priority: 'low'
-    });
-  }
-  
-  if (metrics.localProductsPercent >= 40 && recommendations.length < 2) {
-    recommendations.push({
-      title: 'Local Sourcing Leadership',
-      description: 'Your local sourcing strategy is strong. Consider mentoring other businesses or creating case studies to share your approach.',
-      priority: 'low'
-    });
-  }
-  
-  // Ensure we always have at least one recommendation
-  if (recommendations.length === 0) {
-    recommendations.push({
-      title: 'Outstanding Sustainability Performance',
-      description: 'Your store excels across all sustainability metrics. Consider obtaining sustainability certifications and using your success as a competitive advantage.',
-      priority: 'low'
-    });
-  }
-  
-  return recommendations.slice(0, 4); 
 }
