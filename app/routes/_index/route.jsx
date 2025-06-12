@@ -8,17 +8,10 @@ import {
   Text,
   TextField,
   Button,
-  InlineStack,
   BlockStack,
   Box,
   Banner,
-  Icon,
 } from "@shopify/polaris";
-import {
-  CheckCircleIcon,
-  AnalyticsIcon,
-  ProductIcon,
-} from "@shopify/polaris-icons";
 
 export const loader = async ({ request }) => {
   const url = new URL(request.url);
@@ -92,50 +85,47 @@ export default function App() {
                 </Text>
                 
                 <BlockStack gap="400">
-                  <InlineStack gap="400" blockAlign="start">
-                    <Box>
-                      <Icon source={AnalyticsIcon} tone="success" />
+                  <Card>
+                    <Box padding="400">
+                      <BlockStack gap="200">
+                        <Text variant="headingMd" as="h3">
+                          Production Analytics
+                        </Text>
+                        <Text tone="subdued">
+                          Get detailed insights into your locally vs internationally produced products 
+                          with comprehensive ratio tracking and visual dashboards.
+                        </Text>
+                      </BlockStack>
                     </Box>
-                    <BlockStack gap="200">
-                      <Text variant="headingMd" as="h3">
-                        Production Analytics
-                      </Text>
-                      <Text tone="subdued">
-                        Get detailed insights into your locally vs internationally produced products 
-                        with comprehensive ratio tracking and visual dashboards.
-                      </Text>
-                    </BlockStack>
-                  </InlineStack>
+                  </Card>
 
-                  <InlineStack gap="400" blockAlign="start">
-                    <Box>
-                      <Icon source={ProductIcon} tone="success" />
+                  <Card>
+                    <Box padding="400">
+                      <BlockStack gap="200">
+                        <Text variant="headingMd" as="h3">
+                          Product Management
+                        </Text>
+                        <Text tone="subdued">
+                          Easily categorize and manage your products' production origins 
+                          with intuitive metafield editing and bulk operations.
+                        </Text>
+                      </BlockStack>
                     </Box>
-                    <BlockStack gap="200">
-                      <Text variant="headingMd" as="h3">
-                        Product Management
-                      </Text>
-                      <Text tone="subdued">
-                        Easily categorize and manage your products' production origins 
-                        with intuitive metafield editing and bulk operations.
-                      </Text>
-                    </BlockStack>
-                  </InlineStack>
+                  </Card>
 
-                  <InlineStack gap="400" blockAlign="start">
-                    <Box>
-                      <Icon source={CheckCircleIcon} tone="success" />
+                  <Card>
+                    <Box padding="400">
+                      <BlockStack gap="200">
+                        <Text variant="headingMd" as="h3">
+                          Sustainability Tracking
+                        </Text>
+                        <Text tone="subdued">
+                          Monitor your store's sustainability progress and make data-driven 
+                          decisions to improve your environmental impact.
+                        </Text>
+                      </BlockStack>
                     </Box>
-                    <BlockStack gap="200">
-                      <Text variant="headingMd" as="h3">
-                        Sustainability Tracking
-                      </Text>
-                      <Text tone="subdued">
-                        Monitor your store's sustainability progress and make data-driven 
-                        decisions to improve your environmental impact.
-                      </Text>
-                    </BlockStack>
-                  </InlineStack>
+                  </Card>
                 </BlockStack>
               </BlockStack>
             </Box>
